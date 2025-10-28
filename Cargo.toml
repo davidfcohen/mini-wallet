@@ -1,0 +1,10 @@
+[package]
+name = "mini-wallet"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+alloy = { version = "1.0.41", features = ["full"] }
+hex = "0.4.3"
+secp256k1 = { version = "0.31.1", features = ["rand"] }
+tiny-keccak = "2.0.2"
