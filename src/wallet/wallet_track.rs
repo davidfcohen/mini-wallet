@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::{any::type_name, fmt, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
 
@@ -16,6 +16,12 @@ pub trait Track: Send + Sync + 'static {
 #[derive(Clone)]
 pub struct TrackExecutor {
     pub wallet_store: Arc<dyn WalletStore>,
+}
+
+impl fmt::Debug for TrackExecutor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(type_name::<Self>()).finish()
+    }
 }
 
 #[async_trait]

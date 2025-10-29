@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{any::type_name, fmt, sync::Arc};
 
 use async_trait::async_trait;
 
@@ -13,6 +13,12 @@ pub trait Untrack: Send + Sync + 'static {
 #[derive(Clone)]
 pub struct UntrackExecutor {
     pub wallet_store: Arc<dyn WalletStore>,
+}
+
+impl fmt::Debug for UntrackExecutor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(type_name::<Self>()).finish()
+    }
 }
 
 #[async_trait]

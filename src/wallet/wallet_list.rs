@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use std::sync::Arc;
+use std::{any::type_name, fmt, sync::Arc};
 
 use crate::infra::WalletStore;
 
@@ -13,6 +13,12 @@ pub trait List: Send + Sync + 'static {
 #[derive(Clone)]
 pub struct ListExecutor {
     pub wallet_store: Arc<dyn WalletStore>,
+}
+
+impl fmt::Debug for ListExecutor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(type_name::<Self>()).finish()
+    }
 }
 
 #[async_trait]

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use std::sync::Arc;
+use std::{any::type_name, fmt, sync::Arc};
 
 use crate::infra::{WalletClient, WalletStore};
 
@@ -14,6 +14,12 @@ pub trait Balance: Send + Sync + 'static {
 pub struct BalanceExecutor {
     pub wallet_store: Arc<dyn WalletStore>,
     pub wallet_client: Arc<dyn WalletClient>,
+}
+
+impl fmt::Debug for BalanceExecutor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(type_name::<Self>()).finish()
+    }
 }
 
 #[async_trait]

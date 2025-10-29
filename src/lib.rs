@@ -1,7 +1,9 @@
 #![forbid(unsafe_code)]
+#![warn(missing_debug_implementations)]
 
 pub mod eth;
 pub mod fs;
+pub mod grpc;
 pub mod infra;
 pub mod model;
 
@@ -16,6 +18,11 @@ pub mod wallet {
     const NAME_MAX: usize = 30;
 
     pub type Result<T> = result::Result<T, WalletError>;
+
+    pub use wallet_balance::{Balance, BalanceExecutor};
+    pub use wallet_list::{List, ListExecutor};
+    pub use wallet_track::{Track, TrackExecutor};
+    pub use wallet_untrack::{Untrack, UntrackExecutor};
 
     #[derive(Debug)]
     pub struct WalletError {
