@@ -24,17 +24,15 @@ pub struct ParseError {
 
 #[derive(Debug)]
 enum ParseErrorKind {
-    MissingPrefix,
-    ParseHash,
-    BadChecksum,
+    ExpectedPrefix,
+    Decode,
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
-            ParseErrorKind::MissingPrefix => write!(f, "missing address prefix"),
-            ParseErrorKind::ParseHash => write!(f, "couldn't parse address hash"),
-            ParseErrorKind::BadChecksum => write!(f, "address checksum failed"),
+            ParseErrorKind::ExpectedPrefix => write!(f, "expected address prefix"),
+            ParseErrorKind::Decode => write!(f, "couldn't decode address"),
         }
     }
 }
@@ -45,17 +43,17 @@ impl FromStr for Address {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let coordinates = s.strip_prefix("0x").ok_or(ParseError {
-            kind: ParseErrorKind::MissingPrefix,
+        let nibbles = s.strip_prefix("0x").ok_or(ParseError {
+            kind: ParseErrorKind::ExpectedPrefix,
             source: None,
         })?;
 
-        let mut hash = [0; ADDR_SIZE];
-        hex::decode_to_slice(coordinates, &mut hash).map_err(|e| ParseError {
-            kind: ParseErrorKind::ParseHash,
+        let mut address = [0; ADDR_SIZE];
+        hex::decode_to_slice(nibbles, &mut address).map_err(|e| ParseError {
+            kind: ParseErrorKind::Decode,
             source: Some(e.into()),
         })?;
 
-        Ok(Self(hash))
+        Ok(Self(address))
     }
 }
