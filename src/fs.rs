@@ -93,6 +93,12 @@ impl FsWalletStore {
     }
 }
 
+impl From<FsError> for InfraError {
+    fn from(error: FsError) -> Self {
+        Self(error.into())
+    }
+}
+
 #[async_trait]
 impl WalletStore for FsWalletStore {
     async fn find(&self, name: &str) -> Result<Option<Wallet>, InfraError> {
@@ -118,6 +124,9 @@ impl WalletStore for FsWalletStore {
     async fn save(&self, name: &str, wallet: &Wallet) -> Result<(), InfraError> {
         let mut fs_wallets = self.wallets.write().await;
         fs_wallets.insert(name.to_owned(), wallet_to_fs(wallet));
+        drop(fs_wallets);
+
+        self.persist().await?;
         Ok(())
     }
 
@@ -126,7 +135,7 @@ impl WalletStore for FsWalletStore {
         fs_wallets.remove(name);
         drop(fs_wallets);
 
-        self.persist().await.map_err(|e| InfraError(e.into()))?;
+        self.persist().await?;
         Ok(())
     }
 }
