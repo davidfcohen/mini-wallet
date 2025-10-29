@@ -6,28 +6,28 @@ use tracing::info;
 use crate::wallet;
 
 #[derive(Clone)]
-pub struct GrpcController {
-    pub list: Arc<dyn wallet::List>,
-    pub balance: Arc<dyn wallet::Balance>,
-    pub track: Arc<dyn wallet::Track>,
-    pub untrack: Arc<dyn wallet::Untrack>,
+pub struct Controller {
+    pub wallet_list: Arc<dyn wallet::List>,
+    pub wallte_balance: Arc<dyn wallet::Balance>,
+    pub wallet_track: Arc<dyn wallet::Track>,
+    pub wallet_untrack: Arc<dyn wallet::Untrack>,
 }
 
-impl fmt::Debug for GrpcController {
+impl fmt::Debug for Controller {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct(type_name::<Self>()).finish()
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct GrpcServer {
-    controller: GrpcController,
+pub struct Server {
+    controller: Controller,
     addr: Option<IpAddr>,
     port: Option<u16>,
 }
 
-impl GrpcServer {
-    pub fn new(controller: GrpcController) -> Self {
+impl Server {
+    pub fn new(controller: Controller) -> Self {
         Self {
             controller,
             addr: None,
