@@ -8,7 +8,7 @@ use crate::wallet;
 #[derive(Clone)]
 pub struct Controller {
     pub wallet_list: Arc<dyn wallet::List>,
-    pub wallte_balance: Arc<dyn wallet::Balance>,
+    pub wallet_balance: Arc<dyn wallet::Balance>,
     pub wallet_track: Arc<dyn wallet::Track>,
     pub wallet_untrack: Arc<dyn wallet::Untrack>,
 }
