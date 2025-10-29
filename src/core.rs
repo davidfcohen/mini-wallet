@@ -1,43 +1,59 @@
-use secp256k1::{PublicKey, Secp256k1, SecretKey, rand};
-use tiny_keccak::{Hasher, Keccak};
-
-const SECRET_KEY_SIZE: usize = 32;
+use std::{error, fmt, str::FromStr};
 
 #[derive(Debug, Clone)]
 pub struct Wallet {
-    secret_key: SecretKey,
+    address: Address,
 }
 
 impl Wallet {
-    pub fn new(secret_key: SecretKey) -> Self {
-        let secp = Secp256k1::new();
-        Self { secret_key }
+    pub fn new(address: Address) -> Self {
+        Self { address }
     }
+}
 
-    pub fn random() -> Self {
-        let mut rng = rand::rng();
-        let secp = Secp256k1::new();
-        let (secret_key, _) = secp.generate_keypair(&mut rng);
-        Self { secret_key }
+const ADDR_SIZE: usize = 20;
+
+#[derive(Debug, Clone)]
+pub struct Address([u8; ADDR_SIZE]);
+
+#[derive(Debug)]
+pub struct ParseError {
+    kind: ParseErrorKind,
+    source: Option<Box<dyn error::Error + Send + Sync + 'static>>,
+}
+
+#[derive(Debug)]
+enum ParseErrorKind {
+    ParsePrefix,
+    ParseHash,
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind {
+            ParseErrorKind::ParsePrefix => write!(f, "couldn't parse prefix"),
+            ParseErrorKind::ParseHash => write!(f, "couldn't parse hash"),
+        }
     }
+}
 
-    pub fn secret_key(&self) -> &SecretKey {
-        &self.secret_key
-    }
+impl error::Error for ParseError {}
 
-    pub fn public_key(&self) -> PublicKey {
-        let secp = Secp256k1::new();
-        PublicKey::from_secret_key(&secp, &self.secret_key)
-    }
+impl FromStr for Address {
+    type Err = ParseError;
 
-    pub fn address(&self) -> String {
-        let public_key = &self.public_key().serialize_uncompressed()[1..];
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let coordinates = s.strip_prefix("0x").ok_or(ParseError {
+            kind: ParseErrorKind::ParsePrefix,
+            source: None,
+        })?;
 
-        let mut hasher = Keccak::v256();
-        let mut hash = [0u8; 32];
-        hasher.update(public_key);
-        hasher.finalize(&mut hash);
+        let mut hash = [0; ADDR_SIZE];
+        hex::decode_to_slice(coordinates, &mut hash).map_err(|e| ParseError {
+            kind: ParseErrorKind::ParseHash,
+            source: Some(e.into()),
+        })?;
 
-        format!("0x{}", hex::encode(&hash[12..]))
+        Ok(Self(hash))
     }
 }
