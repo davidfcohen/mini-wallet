@@ -8,7 +8,7 @@ use bincode::{
 use tokio::{fs, sync::RwLock};
 
 use crate::{
-    infra::{InfraError, WalletStore},
+    infra::{StoreError, WalletStore},
     model::{Address, Wallet},
 };
 
@@ -77,7 +77,7 @@ impl FsWalletStore {
         })
     }
 
-    async fn persist(&self) -> Result<(), FsError> {
+    async fn write(&self) -> Result<(), FsError> {
         let wallet = self.wallets.read().await;
 
         let config = bincode::config::standard();
@@ -88,12 +88,11 @@ impl FsWalletStore {
         }
 
         fs::write(&self.path, bytes).await?;
-
         Ok(())
     }
 }
 
-impl From<FsError> for InfraError {
+impl From<FsError> for StoreError {
     fn from(error: FsError) -> Self {
         Self(error.into())
     }
@@ -101,12 +100,13 @@ impl From<FsError> for InfraError {
 
 #[async_trait]
 impl WalletStore for FsWalletStore {
-    async fn find(&self, name: &str) -> Result<Option<Wallet>, InfraError> {
+    async fn find(&self, name: &str) -> Result<Option<Wallet>, StoreError> {
         let fs_wallets = self.wallets.read().await;
         let maybe_wallet = fs_wallets.get(name).map(fs_to_wallet);
         Ok(maybe_wallet)
     }
-    async fn load(&self) -> Result<HashMap<String, Wallet>, InfraError> {
+
+    async fn load(&self) -> Result<HashMap<String, Wallet>, StoreError> {
         let fs_wallets = self.wallets.read().await;
         let wallets = fs_wallets
             .iter()
@@ -115,27 +115,27 @@ impl WalletStore for FsWalletStore {
         Ok(wallets)
     }
 
-    async fn exists(&self, name: &str) -> Result<bool, InfraError> {
+    async fn exists(&self, name: &str) -> Result<bool, StoreError> {
         let fs_wallets = self.wallets.read().await;
         let found = fs_wallets.contains_key(name);
         Ok(found)
     }
 
-    async fn save(&self, name: &str, wallet: &Wallet) -> Result<(), InfraError> {
+    async fn save(&self, name: &str, wallet: &Wallet) -> Result<(), StoreError> {
         let mut fs_wallets = self.wallets.write().await;
         fs_wallets.insert(name.to_owned(), wallet_to_fs(wallet));
         drop(fs_wallets);
 
-        self.persist().await?;
+        self.write().await?;
         Ok(())
     }
 
-    async fn delete(&self, name: &str) -> Result<(), InfraError> {
+    async fn delete(&self, name: &str) -> Result<(), StoreError> {
         let mut fs_wallets = self.wallets.write().await;
         fs_wallets.remove(name);
         drop(fs_wallets);
 
-        self.persist().await?;
+        self.write().await?;
         Ok(())
     }
 }

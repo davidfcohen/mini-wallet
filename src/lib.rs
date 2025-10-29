@@ -5,7 +5,10 @@ mod model;
 mod wallet {
     use std::{error, fmt, result};
 
-    use crate::{infra::InfraError, model::AddrParseError};
+    use crate::{
+        infra::{ChainError, StoreError},
+        model::AddrParseError,
+    };
 
     const NAME_MAX: usize = 30;
 
@@ -41,6 +44,9 @@ mod wallet {
                 WalletErrorKind::WalletStore => {
                     write!(f, "wallet store error")
                 }
+                WalletErrorKind::WalletChain => {
+                    write!(f, "wallet blockchain error")
+                }
                 WalletErrorKind::WalletAddrParse => {
                     write!(f, "couldn't parse wallet address")
                 }
@@ -61,13 +67,23 @@ mod wallet {
         NameEmpty,
         NameTooLong,
         WalletStore,
+        WalletChain,
         WalletAddrParse,
     }
 
-    impl From<InfraError> for WalletError {
-        fn from(error: InfraError) -> Self {
+    impl From<StoreError> for WalletError {
+        fn from(error: StoreError) -> Self {
             Self {
                 kind: WalletErrorKind::WalletStore,
+                source: Some(error.0),
+            }
+        }
+    }
+
+    impl From<ChainError> for WalletError {
+        fn from(error: ChainError) -> Self {
+            Self {
+                kind: WalletErrorKind::WalletChain,
                 source: Some(error.0),
             }
         }
