@@ -1,5 +1,8 @@
 use std::{any::type_name, fmt, net::IpAddr, sync::Arc};
 
+use tokio::signal;
+use tracing::info;
+
 use crate::wallet;
 
 #[derive(Clone)]
@@ -41,4 +44,30 @@ impl GrpcServer {
         self.port = Some(port);
         self
     }
+}
+
+async fn capture_shutdown_signal() {
+    let interrupt = async {
+        signal::ctrl_c()
+            .await
+            .expect("couldn't install SIGINT handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("couldn't install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = interrupt => {},
+        _ = terminate => {},
+    }
+
+    info!("received shutdown signal")
 }
