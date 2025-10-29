@@ -1,3 +1,4 @@
+mod fs;
 mod infra;
 mod model;
 
@@ -10,6 +11,7 @@ mod wallet {
 
     pub type Result<T> = result::Result<T, WalletError>;
 
+    #[derive(Debug)]
     pub struct WalletError {
         kind: WalletErrorKind,
         source: Option<Box<dyn error::Error + Send + Sync + 'static>>,
@@ -43,6 +45,12 @@ mod wallet {
                     write!(f, "couldn't parse wallet address")
                 }
             }
+        }
+    }
+
+    impl error::Error for WalletError {
+        fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+            self.source.as_deref().map(|e| e as _)
         }
     }
 

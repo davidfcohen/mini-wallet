@@ -21,6 +21,8 @@ pub struct TrackExecutor {
 #[async_trait]
 impl Track for TrackExecutor {
     async fn execute(&self, name: &str, address: &str) -> Result<()> {
+        validate_name(name)?;
+
         if self.wallet_store.exists(name).await? {
             return Err(WalletError {
                 kind: WalletErrorKind::NameConflict,
@@ -32,6 +34,22 @@ impl Track for TrackExecutor {
         let wallet = Wallet::new(address);
 
         self.wallet_store.save(name, &wallet).await?;
+        Ok(())
+    }
+}
+
+fn validate_name(name: &str) -> Result<()> {
+    if name.is_empty() {
+        Err(WalletError {
+            kind: WalletErrorKind::NameEmpty,
+            source: None,
+        })
+    } else if name.chars().count() > 30 {
+        Err(WalletError {
+            kind: WalletErrorKind::NameTooLong,
+            source: None,
+        })
+    } else {
         Ok(())
     }
 }

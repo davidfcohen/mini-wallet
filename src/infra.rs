@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::model::Wallet;
 
-type Result<T> = result::Result<T, InfraError>;
+pub type Result<T> = result::Result<T, InfraError>;
 
 #[derive(Debug)]
 pub struct InfraError(pub Box<dyn error::Error + Send + Sync + 'static>);
