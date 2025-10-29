@@ -1,12 +1,15 @@
-mod fs;
-mod infra;
-mod model;
+#![forbid(unsafe_code)]
 
-mod wallet {
+pub mod eth;
+pub mod fs;
+pub mod infra;
+pub mod model;
+
+pub mod wallet {
     use std::{error, fmt, result};
 
     use crate::{
-        infra::{ChainError, StoreError},
+        infra::{ClientError, StoreError},
         model::AddrParseError,
     };
 
@@ -80,8 +83,8 @@ mod wallet {
         }
     }
 
-    impl From<ChainError> for WalletError {
-        fn from(error: ChainError) -> Self {
+    impl From<ClientError> for WalletError {
+        fn from(error: ClientError) -> Self {
             Self {
                 kind: WalletErrorKind::WalletChain,
                 source: Some(error.0),

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use crate::infra::{WalletChain, WalletStore};
+use crate::infra::{WalletClient, WalletStore};
 
 use super::{Result, WalletError, WalletErrorKind};
 
@@ -13,7 +13,7 @@ pub trait Balance: Send + Sync + 'static {
 #[derive(Clone)]
 pub struct BalanceExecutor {
     pub wallet_store: Arc<dyn WalletStore>,
-    pub wallet_chain: Arc<dyn WalletChain>,
+    pub wallet_client: Arc<dyn WalletClient>,
 }
 
 #[async_trait]
@@ -27,7 +27,7 @@ impl Balance for BalanceExecutor {
         };
 
         let address = wallet.address().to_string();
-        let balance = self.wallet_chain.balance(&address).await?;
+        let balance = self.wallet_client.balance(&address).await?;
         Ok(balance)
     }
 }

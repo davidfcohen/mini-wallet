@@ -18,9 +18,9 @@ pub struct ListExecutor {
 #[async_trait]
 impl List for ListExecutor {
     async fn execute(&self) -> Result<Vec<Wallet>> {
-        let wallets = self
+        let mut wallets: Vec<Wallet> = self
             .wallet_store
-            .load()
+            .all()
             .await?
             .into_iter()
             .map(|(name, wallet)| Wallet {
@@ -29,6 +29,11 @@ impl List for ListExecutor {
             })
             .collect();
 
+        wallets.sort_by(|a, b| {
+            let a = a.name.to_lowercase();
+            let b = b.name.to_lowercase();
+            a.cmp(&b)
+        });
         Ok(wallets)
     }
 }

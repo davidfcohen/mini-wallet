@@ -17,7 +17,7 @@ pub struct FsError(Box<dyn error::Error + Send + Sync + 'static>);
 
 impl fmt::Display for FsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "file system error")
+        write!(f, "file system database error")
     }
 }
 
@@ -52,12 +52,12 @@ pub struct FsWalletStore {
 }
 
 #[derive(Debug, Clone, Encode, Decode)]
-pub struct FsWallet {
+struct FsWallet {
     address: [u8; 20],
 }
 
 impl FsWalletStore {
-    pub async fn new(path: impl AsRef<str>) -> Result<Self, FsError> {
+    pub async fn open(path: impl AsRef<str>) -> Result<Self, FsError> {
         let path = PathBuf::from(path.as_ref());
 
         if !path.exists() {
@@ -106,7 +106,7 @@ impl WalletStore for FsWalletStore {
         Ok(maybe_wallet)
     }
 
-    async fn load(&self) -> Result<HashMap<String, Wallet>, StoreError> {
+    async fn all(&self) -> Result<HashMap<String, Wallet>, StoreError> {
         let fs_wallets = self.wallets.read().await;
         let wallets = fs_wallets
             .iter()
