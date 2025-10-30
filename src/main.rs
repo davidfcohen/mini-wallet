@@ -1,3 +1,6 @@
+#![forbid(unsafe_code)]
+#![warn(missing_debug_implementations)]
+
 use std::{error::Error, process, sync::Arc};
 
 use mini_wallet::{
