@@ -46,25 +46,25 @@ impl fmt::Display for AddrParseError {
     }
 }
 
-const ADDR_SIZE: usize = 20;
-const ADDR_LEN: usize = ADDR_SIZE * 2;
+const ADDR_DECODE_SIZE: usize = 20;
+const ADDR_ENCODE_SIZE: usize = ADDR_DECODE_SIZE * 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Address([u8; ADDR_SIZE]);
+pub struct Address([u8; ADDR_DECODE_SIZE]);
 
 impl Address {
-    pub fn new(bytes: [u8; ADDR_SIZE]) -> Self {
+    pub fn new(bytes: [u8; ADDR_DECODE_SIZE]) -> Self {
         Self(bytes)
     }
 
-    pub fn inner(&self) -> &[u8; ADDR_SIZE] {
+    pub fn inner(&self) -> &[u8; ADDR_DECODE_SIZE] {
         &self.0
     }
 }
 
 impl fmt::Display for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut addr_encoded = [0u8; ADDR_LEN];
+        let mut addr_encoded = [0u8; ADDR_ENCODE_SIZE];
         hex::encode_to_slice(self.inner(), &mut addr_encoded)
             .expect("20 bytes encodes to 40 bytes");
         make_addr_checksum(&mut addr_encoded);
@@ -93,7 +93,7 @@ impl FromStr for Address {
             source: None,
         })?;
 
-        let addr_encoded: &[u8; ADDR_LEN] =
+        let addr_encoded: &[u8; ADDR_ENCODE_SIZE] =
             addr_encoded.try_into().map_err(|_| AddrParseError {
                 kind: ErrorKind::WrongLen,
                 source: None,
@@ -106,7 +106,7 @@ impl FromStr for Address {
             });
         }
 
-        let mut addr_decoded = [0; ADDR_SIZE];
+        let mut addr_decoded = [0; ADDR_DECODE_SIZE];
         hex::decode_to_slice(addr_encoded, &mut addr_decoded).map_err(|e| AddrParseError {
             kind: ErrorKind::Decode,
             source: Some(e.into()),
@@ -116,16 +116,16 @@ impl FromStr for Address {
     }
 }
 
-fn checksum_eq(addr: &[u8; ADDR_LEN]) -> bool {
+fn checksum_eq(addr: &[u8; ADDR_ENCODE_SIZE]) -> bool {
     let mut addr_checksum = *addr;
     make_addr_checksum(&mut addr_checksum);
     addr.eq(&addr_checksum)
 }
 
-fn make_addr_checksum(addr_lower: &mut [u8; ADDR_LEN]) {
+fn make_addr_checksum(addr_lower: &mut [u8; ADDR_ENCODE_SIZE]) {
     addr_lower.make_ascii_lowercase();
 
-    let mut addr_hash = [0u8; ADDR_SIZE];
+    let mut addr_hash = [0u8; ADDR_DECODE_SIZE];
     let mut keccak = Keccak::v256();
     keccak.update(addr_lower);
     keccak.finalize(&mut addr_hash);
