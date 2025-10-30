@@ -134,8 +134,8 @@ fn make_addr_checksum(addr_lower: &mut [u8; ADDR_LEN]) {
     let addr_checksum = addr_lower;
     for (addr_checksum_ch, addr_hash_nibble) in addr_checksum
         .iter_mut()
-        .filter(|ch| ch.is_ascii_alphabetic())
         .zip(addr_hash_nibbles)
+        .filter(|(ch, _)| ch.is_ascii_alphabetic())
     {
         if addr_hash_nibble >= 8 {
             addr_checksum_ch.make_ascii_uppercase();
@@ -151,17 +151,43 @@ mod tests {
 
     #[test]
     fn addr_parse_ok() {
-        const ADDR: &str = "0xf6369E1A96c7aF1e2326826f5dD84BfEf78d7d80";
-        assert!(Address::from_str(ADDR).is_ok())
+        assert!(Address::from_str("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B").is_ok());
+        assert!(Address::from_str("0xF6369e1A96c7af1E2326826F5Dd84bFEf78d7D80").is_ok());
     }
 
     #[test]
     fn addr_parse_missing_prefix() {
-        const ADDR: &str = "f6369E1A96c7aF1e2326826f5dD84BfEf78d7d80";
-        let AddrParseError { kind, .. } = Address::from_str(ADDR).unwrap_err();
-        assert_eq!(kind, ErrorKind::MissingPrefix)
+        let error = Address::from_str("").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::MissingPrefix);
+
+        let error = Address::from_str("Ab5801a7D398351b8bE11C439e05C5B3259aeC9B").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::MissingPrefix);
+
+        let error = Address::from_str("F6369e1A96c7af1E2326826F5Dd84bFEf78d7D80").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::MissingPrefix);
     }
 
     #[test]
-    fn addr_bad_checksum() {}
+    fn addr_parse_wrong_len() {
+        let error = Address::from_str("0x").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::WrongLen);
+
+        let error = Address::from_str("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::WrongLen);
+
+        let error = Address::from_str("0xF6369e1A96c7af1E2326826F5Dd84bFEf78d7D801").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::WrongLen);
+    }
+
+    #[test]
+    fn addr_parse_bad_checksum() {
+        let error = Address::from_str("0xaB5801A7d398351B8Be11c439E05c5b3259AEc9b").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::BadChecksum);
+
+        let error = Address::from_str("0xab5801a7d398351b8be11c439e05c5b3259aec9b").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::BadChecksum);
+
+        let error = Address::from_str("0xAB5801A7D398351B8BE11C439E05C5B3259AEC9B").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::BadChecksum);
+    }
 }
