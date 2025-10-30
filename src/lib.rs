@@ -2,17 +2,17 @@
 #![warn(missing_debug_implementations)]
 
 pub mod api;
+pub mod core;
 pub mod eth;
 pub mod fs;
 pub mod infra;
-pub mod model;
 
 pub mod wallet {
     use std::{error, fmt, result};
 
     use crate::{
+        core::AddrParseError,
         infra::{ClientError, StoreError},
-        model::AddrParseError,
     };
 
     const NAME_MAX: usize = 30;

@@ -8,8 +8,8 @@ use bincode::{
 use tokio::{fs, sync::RwLock};
 
 use crate::{
+    core::{Address, Wallet},
     infra::{StoreError, WalletStore},
-    model::{Address, Wallet},
 };
 
 #[derive(Debug)]

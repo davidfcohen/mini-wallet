@@ -2,7 +2,7 @@ use std::{collections::HashMap, error, fmt};
 
 use async_trait::async_trait;
 
-use crate::model::Wallet;
+use crate::core::Wallet;
 
 #[derive(Debug)]
 pub struct StoreError(pub Box<dyn error::Error + Send + Sync + 'static>);

@@ -4,8 +4,8 @@ use async_trait::async_trait;
 
 use super::{Result, WalletError, WalletErrorKind};
 use crate::{
+    core::{Address, Wallet},
     infra::WalletStore,
-    model::{Address, Wallet},
 };
 
 #[async_trait]
