@@ -11,7 +11,7 @@ pub mod wallet {
     use std::{error, fmt, result};
 
     use crate::{
-        core::AddressError,
+        core::AddrParseError,
         infra::{ClientError, StoreError},
     };
 
@@ -99,8 +99,8 @@ pub mod wallet {
         }
     }
 
-    impl From<AddressError> for WalletError {
-        fn from(error: AddressError) -> Self {
+    impl From<AddrParseError> for WalletError {
+        fn from(error: AddrParseError) -> Self {
             Self {
                 kind: WalletErrorKind::WalletAddrParse,
                 source: Some(error.into()),
