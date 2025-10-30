@@ -4,6 +4,7 @@ use std::{
     str::FromStr,
 };
 
+use hex::FromHexError;
 use tiny_keccak::{Hasher, Keccak};
 
 #[derive(Debug, Clone)]
@@ -23,26 +24,40 @@ impl Wallet {
 
 #[derive(Debug)]
 pub struct AddrParseError {
-    kind: ErrorKind,
-    source: Option<Box<dyn error::Error + Send + Sync + 'static>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum ErrorKind {
-    MissingPrefix,
-    WrongLen,
-    BadChecksum,
-    Decode,
+    inner: InnerError,
 }
 
 impl fmt::Display for AddrParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.kind {
-            ErrorKind::MissingPrefix => write!(f, "address missing prefix"),
-            ErrorKind::WrongLen => write!(f, "address is wrong length"),
-            ErrorKind::BadChecksum => write!(f, "address doesn't match checksum"),
-            ErrorKind::Decode => write!(f, "couldn't decode address"),
+        match self.inner {
+            InnerError::MissingPrefix => write!(f, "address missing prefix"),
+            InnerError::WrongLen => write!(f, "address is wrong length"),
+            InnerError::BadChecksum => write!(f, "address doesn't match checksum"),
+            InnerError::Decode(_) => write!(f, "couldn't decode address"),
         }
+    }
+}
+
+impl error::Error for AddrParseError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match &self.inner {
+            InnerError::Decode(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+enum InnerError {
+    MissingPrefix,
+    WrongLen,
+    BadChecksum,
+    Decode(FromHexError),
+}
+
+impl From<InnerError> for AddrParseError {
+    fn from(error: InnerError) -> Self {
+        Self { inner: error }
     }
 }
 
@@ -78,38 +93,22 @@ impl fmt::Display for Address {
     }
 }
 
-impl error::Error for AddrParseError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        self.source.as_deref().map(|e| e as _)
-    }
-}
-
 impl FromStr for Address {
     type Err = AddrParseError;
 
     fn from_str(addr: &str) -> Result<Self, Self::Err> {
-        let addr_encoded = addr.as_bytes().strip_prefix(b"0x").ok_or(AddrParseError {
-            kind: ErrorKind::MissingPrefix,
-            source: None,
-        })?;
-
-        let addr_encoded: &[u8; ADDR_ENCODE_SIZE] =
-            addr_encoded.try_into().map_err(|_| AddrParseError {
-                kind: ErrorKind::WrongLen,
-                source: None,
-            })?;
+        let addr_encoded: &[u8; ADDR_ENCODE_SIZE] = addr
+            .as_bytes()
+            .strip_prefix(b"0x")
+            .ok_or(InnerError::MissingPrefix)?
+            .try_into()
+            .map_err(|_| InnerError::WrongLen)?;
 
         let mut addr_decoded = [0; ADDR_DECODE_SIZE];
-        hex::decode_to_slice(addr_encoded, &mut addr_decoded).map_err(|e| AddrParseError {
-            kind: ErrorKind::Decode,
-            source: Some(e.into()),
-        })?;
+        hex::decode_to_slice(addr_encoded, &mut addr_decoded).map_err(InnerError::Decode)?;
 
         if !checksum_eq(addr_encoded) {
-            return Err(AddrParseError {
-                kind: ErrorKind::BadChecksum,
-                source: None,
-            });
+            Err(InnerError::BadChecksum)?;
         }
 
         Ok(Self(addr_decoded))
@@ -158,42 +157,42 @@ mod tests {
     #[test]
     fn addr_parse_missing_prefix() {
         let error = Address::from_str("").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::MissingPrefix);
+        assert!(matches!(error.inner, InnerError::MissingPrefix));
 
         let error = Address::from_str("Ab5801a7D398351b8bE11C439e05C5B3259aeC9B").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::MissingPrefix);
+        assert!(matches!(error.inner, InnerError::MissingPrefix));
 
         let error = Address::from_str("F6369e1A96c7af1E2326826F5Dd84bFEf78d7D80").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::MissingPrefix);
+        assert!(matches!(error.inner, InnerError::MissingPrefix));
     }
 
     #[test]
     fn addr_parse_wrong_len() {
         let error = Address::from_str("0x").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::WrongLen);
+        assert!(matches!(error.inner, InnerError::WrongLen));
 
         let error = Address::from_str("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::WrongLen);
+        assert!(matches!(error.inner, InnerError::WrongLen));
 
         let error = Address::from_str("0xF6369e1A96c7af1E2326826F5Dd84bFEf78d7D801").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::WrongLen);
+        assert!(matches!(error.inner, InnerError::WrongLen));
     }
 
     #[test]
     fn addr_parse_bad_checksum() {
         let error = Address::from_str("0xaB5801A7d398351B8Be11c439E05c5b3259AEc9b").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::BadChecksum);
+        assert!(matches!(error.inner, InnerError::BadChecksum));
 
         let error = Address::from_str("0xab5801a7d398351b8be11c439e05c5b3259aec9b").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::BadChecksum);
+        assert!(matches!(error.inner, InnerError::BadChecksum));
 
         let error = Address::from_str("0xAB5801A7D398351B8BE11C439E05C5B3259AEC9B").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::BadChecksum);
+        assert!(matches!(error.inner, InnerError::BadChecksum));
     }
 
     #[test]
     fn addr_parse_decode_err() {
         let error = Address::from_str("0xABCDEFGHIJKLMNOPQRSTabcdefghijklmnopqrst").unwrap_err();
-        assert_eq!(error.kind, ErrorKind::Decode);
+        assert!(matches!(error.inner, InnerError::Decode(_)));
     }
 }
