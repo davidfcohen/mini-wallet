@@ -99,18 +99,18 @@ impl FromStr for Address {
                 source: None,
             })?;
 
+        let mut addr_decoded = [0; ADDR_DECODE_SIZE];
+        hex::decode_to_slice(addr_encoded, &mut addr_decoded).map_err(|e| AddrParseError {
+            kind: ErrorKind::Decode,
+            source: Some(e.into()),
+        })?;
+
         if !checksum_eq(addr_encoded) {
             return Err(AddrParseError {
                 kind: ErrorKind::BadChecksum,
                 source: None,
             });
         }
-
-        let mut addr_decoded = [0; ADDR_DECODE_SIZE];
-        hex::decode_to_slice(addr_encoded, &mut addr_decoded).map_err(|e| AddrParseError {
-            kind: ErrorKind::Decode,
-            source: Some(e.into()),
-        })?;
 
         Ok(Self(addr_decoded))
     }
@@ -189,5 +189,11 @@ mod tests {
 
         let error = Address::from_str("0xAB5801A7D398351B8BE11C439E05C5B3259AEC9B").unwrap_err();
         assert_eq!(error.kind, ErrorKind::BadChecksum);
+    }
+
+    #[test]
+    fn addr_parse_decode_err() {
+        let error = Address::from_str("0xABCDEFGHIJKLMNOPQRSTabcdefghijklmnopqrst").unwrap_err();
+        assert_eq!(error.kind, ErrorKind::Decode);
     }
 }
