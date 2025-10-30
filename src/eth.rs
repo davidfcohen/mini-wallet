@@ -1,4 +1,4 @@
-use std::{error, fmt};
+use std::{error, fmt, time::Duration};
 
 use async_trait::async_trait;
 use reqwest::Client;
@@ -21,6 +21,12 @@ impl error::Error for EthError {
     }
 }
 
+impl From<reqwest::Error> for EthError {
+    fn from(error: reqwest::Error) -> Self {
+        Self(error.into())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct EthWalletClient {
     client: Client,
@@ -28,11 +34,11 @@ pub struct EthWalletClient {
 }
 
 impl EthWalletClient {
-    pub fn new(url: impl Into<String>) -> Self {
-        Self {
-            client: Client::new(),
+    pub fn new(url: impl Into<String>) -> Result<Self, EthError> {
+        Ok(Self {
+            client: Client::builder().timeout(Duration::from_secs(30)).build()?,
             url: url.into(),
-        }
+        })
     }
 }
 

@@ -33,8 +33,12 @@ fn subscribe_tracing() {
 }
 
 async fn build_dependencies() -> Dependencies {
-    let wallet_client = EthWalletClient::new("https://eth.llamarpc.com");
     let wallet_store = FsWalletStore::open("wallet.db").await.unwrap_or_else(|e| {
+        trace_error(&e);
+        process::exit(1);
+    });
+
+    let wallet_client = EthWalletClient::new("https://eth.llamarpc.com").unwrap_or_else(|e| {
         trace_error(&e);
         process::exit(1);
     });
