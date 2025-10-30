@@ -53,12 +53,6 @@ impl From<ReflectionError> for ApiError {
     }
 }
 
-#[derive(Debug)]
-enum InnerError {
-    Transport(TransportError),
-    Reflection(ReflectionError),
-}
-
 #[derive(Clone)]
 pub struct Controller {
     pub wallet_list: Arc<dyn wallet::List>,
@@ -159,8 +153,8 @@ async fn capture_shutdown_signal() {
 }
 
 #[derive(Debug, Clone)]
-pub struct WalletServer {
-    pub controller: Controller,
+struct WalletServer {
+    controller: Controller,
 }
 
 #[async_trait]
@@ -203,13 +197,13 @@ impl WalletService for WalletServer {
     }
 
     async fn track(&self, request: Request<TrackRequest>) -> Result<Response<()>> {
+        let request = request.into_inner();
+
         let name = request
-            .into_inner()
             .name
             .ok_or(Status::invalid_argument("missing required name"))?;
 
         let address = request
-            .into_inner()
             .address
             .ok_or(Status::invalid_argument("missing required address"))?;
 
@@ -263,8 +257,4 @@ fn compose_error(error: &dyn std::error::Error) -> String {
     }
 
     composed
-}
-
-fn missing_required(arg: &str) -> Status {
-    Status::invalid_argument(format!("missing required {arg}"))
 }

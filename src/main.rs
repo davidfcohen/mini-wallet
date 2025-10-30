@@ -1,6 +1,13 @@
-use std::sync::Arc;
+use std::{error::Error, process, sync::Arc};
 
-use mini_wallet::{eth::EthWalletClient, fs::FsWalletStore};
+use mini_wallet::{
+    api::{Controller, Server},
+    eth::EthWalletClient,
+    fs::FsWalletStore,
+    wallet,
+};
+
+use tracing::error;
 
 #[derive(Debug, Clone)]
 struct Dependencies {
@@ -9,8 +16,67 @@ struct Dependencies {
 }
 
 #[tokio::main]
-async fn main() {}
+async fn main() {
+    subscribe_tracing();
+    let dependencies = build_dependencies().await;
+    let controller = build_controller(&dependencies);
 
-fn build_dependencies() -> Dependencies {
-    todo!()
+    let server = Server::new(controller);
+    server.run().await.unwrap_or_else(|e| {
+        trace_error(&e);
+        process::exit(1);
+    });
+}
+
+fn subscribe_tracing() {
+    tracing_subscriber::fmt().init();
+}
+
+async fn build_dependencies() -> Dependencies {
+    let wallet_client = EthWalletClient::new("https://eth.llamarpc.com");
+    let wallet_store = FsWalletStore::open("wallet.db").await.unwrap_or_else(|e| {
+        trace_error(&e);
+        process::exit(1);
+    });
+
+    Dependencies {
+        wallet_store: Arc::new(wallet_store),
+        wallet_client: Arc::new(wallet_client),
+    }
+}
+
+fn build_controller(dependencies: &Dependencies) -> Controller {
+    let Dependencies {
+        wallet_store,
+        wallet_client,
+    } = dependencies;
+
+    Controller {
+        wallet_list: Arc::new(wallet::ListExecutor {
+            wallet_store: wallet_store.clone(),
+        }),
+        wallet_balance: Arc::new(wallet::BalanceExecutor {
+            wallet_store: wallet_store.clone(),
+            wallet_client: wallet_client.clone(),
+        }),
+        wallet_track: Arc::new(wallet::TrackExecutor {
+            wallet_store: wallet_store.clone(),
+        }),
+        wallet_untrack: Arc::new(wallet::UntrackExecutor {
+            wallet_store: wallet_store.clone(),
+        }),
+    }
+}
+
+fn trace_error(error: &dyn Error) {
+    let mut composed = error.to_string();
+
+    let mut next: &dyn Error = &error;
+    while let Some(source) = next.source() {
+        composed.push_str(": ");
+        composed.push_str(&source.to_string());
+        next = source;
+    }
+
+    error!("{composed}");
 }
