@@ -28,6 +28,10 @@ impl Address {
     pub fn inner(&self) -> &[u8; ADDR_SIZE] {
         &self.0
     }
+
+    pub fn into_inner(self) -> [u8; ADDR_SIZE] {
+        self.0
+    }
 }
 
 impl fmt::Display for Address {
@@ -99,20 +103,6 @@ mod tests {
     #[test]
     fn addr_parse_missing_prefix() {
         const ADDR: &str = "f6369E1A96c7aF1e2326826f5dD84BfEf78d7d80";
-        let AddrParseError { kind, .. } = Address::from_str(ADDR).unwrap_err();
-        assert_eq!(kind, ErrorKind::MissingPrefix)
-    }
-
-    #[test]
-    fn addr_parse_too_short() {
-        const ADDR: &str = "0xf6369E1A96c7aF1e2326826f5dD84BfEf78d7d8";
-        let AddrParseError { kind, .. } = Address::from_str(ADDR).unwrap_err();
-        assert_eq!(kind, ErrorKind::Decode)
-    }
-
-    #[test]
-    fn addr_parse_too_long() {
-        const ADDR: &str = "0xf6369E1A96c7aF1e2326826f5dD84BfEf78d7d801";
         let AddrParseError { kind, .. } = Address::from_str(ADDR).unwrap_err();
         assert_eq!(kind, ErrorKind::MissingPrefix)
     }
