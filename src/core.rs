@@ -121,16 +121,16 @@ fn checksum_eq(addr: &[u8; ADDR_ENCODE_SIZE]) -> bool {
     addr.eq(&addr_checksum)
 }
 
-fn make_addr_checksum(addr_lower: &mut [u8; ADDR_ENCODE_SIZE]) {
-    addr_lower.make_ascii_lowercase();
+fn make_addr_checksum(addr: &mut [u8; ADDR_ENCODE_SIZE]) {
+    addr.make_ascii_lowercase();
 
     let mut addr_hash = [0u8; ADDR_DECODE_SIZE];
     let mut keccak = Keccak::v256();
-    keccak.update(addr_lower);
+    keccak.update(addr);
     keccak.finalize(&mut addr_hash);
     let addr_hash_nibbles = addr_hash.iter().flat_map(|byte| [byte >> 4, byte & 0xf]);
 
-    let addr_checksum = addr_lower;
+    let addr_checksum = addr;
     for (addr_checksum_ch, addr_hash_nibble) in addr_checksum
         .iter_mut()
         .zip(addr_hash_nibbles)
