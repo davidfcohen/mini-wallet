@@ -4,9 +4,9 @@
 use std::{error::Error, process, sync::Arc};
 
 use mini_wallet::{
-    api::{Controller, Server},
     fs::FsWalletStore,
     rpc::RpcWalletClient,
+    server::{Controller, Server},
     wallet,
 };
 
@@ -66,6 +66,10 @@ fn build_controller(dependencies: &Dependencies) -> Controller {
             wallet_store: wallet_store.clone(),
         }),
         wallet_track: Arc::new(wallet::TrackExecutor {
+            wallet_store: wallet_store.clone(),
+            wallet_client: wallet_client.clone(),
+        }),
+        wallet_refresh: Arc::new(wallet::RefreshExecutor {
             wallet_store: wallet_store.clone(),
             wallet_client: wallet_client.clone(),
         }),

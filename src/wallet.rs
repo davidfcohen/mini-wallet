@@ -1,4 +1,5 @@
 mod wallet_list;
+mod wallet_refresh;
 mod wallet_track;
 mod wallet_untrack;
 
@@ -14,6 +15,7 @@ const NAME_MAX: usize = 30;
 pub type Result<T> = result::Result<T, WalletError>;
 
 pub use wallet_list::{List, ListExecutor};
+pub use wallet_refresh::{Refresh, RefreshExecutor};
 pub use wallet_track::{Track, TrackExecutor};
 pub use wallet_untrack::{Untrack, UntrackExecutor};
 
