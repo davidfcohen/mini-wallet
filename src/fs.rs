@@ -18,7 +18,7 @@ pub struct FsError(Box<dyn error::Error + Send + Sync + 'static>);
 
 impl fmt::Display for FsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "file system database error")
+        write!(f, "file system store error")
     }
 }
 

@@ -49,8 +49,8 @@ impl fmt::Display for WalletError {
             WalletErrorKind::WalletStore => {
                 write!(f, "wallet store error")
             }
-            WalletErrorKind::WalletChain => {
-                write!(f, "wallet blockchain error")
+            WalletErrorKind::WalletClient => {
+                write!(f, "wallet client error")
             }
             WalletErrorKind::WalletAddrParse => {
                 write!(f, "couldn't parse wallet address")
@@ -72,7 +72,7 @@ pub enum WalletErrorKind {
     NameEmpty,
     NameTooLong,
     WalletStore,
-    WalletChain,
+    WalletClient,
     WalletAddrParse,
 }
 
@@ -88,7 +88,7 @@ impl From<StoreError> for WalletError {
 impl From<ClientError> for WalletError {
     fn from(error: ClientError) -> Self {
         Self {
-            kind: WalletErrorKind::WalletChain,
+            kind: WalletErrorKind::WalletClient,
             source: Some(error.0),
         }
     }

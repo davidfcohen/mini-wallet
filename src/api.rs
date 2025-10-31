@@ -241,7 +241,7 @@ fn error_to_status(error: &WalletError) -> Status {
         WalletErrorKind::NameEmpty => Status::invalid_argument(message),
         WalletErrorKind::NameTooLong => Status::invalid_argument(message),
         WalletErrorKind::WalletStore => Status::internal(message),
-        WalletErrorKind::WalletChain => Status::internal(message),
+        WalletErrorKind::WalletClient => Status::internal(message),
         WalletErrorKind::WalletAddrParse => Status::invalid_argument(message),
     }
 }

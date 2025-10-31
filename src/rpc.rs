@@ -1,10 +1,10 @@
 use std::{error, fmt, time::Duration};
 
 use async_trait::async_trait;
-use futures::stream::BoxStream;
-use reqwest::Client;
+use hex::FromHexError;
+use reqwest::{Client, Error as ReqwestError};
 use serde_json::json;
-use tracing::error;
+use tracing::{debug, instrument};
 
 use crate::{
     core::Address,
@@ -26,8 +26,14 @@ impl error::Error for RpcError {
     }
 }
 
-impl From<reqwest::Error> for RpcError {
-    fn from(error: reqwest::Error) -> Self {
+impl From<ReqwestError> for RpcError {
+    fn from(error: ReqwestError) -> Self {
+        Self(error.into())
+    }
+}
+
+impl From<FromHexError> for RpcError {
+    fn from(error: FromHexError) -> Self {
         Self(error.into())
     }
 }
@@ -49,7 +55,11 @@ impl RpcWalletClient {
 
 #[async_trait]
 impl WalletClient for RpcWalletClient {
-    async fn balance(&self, address: &str) -> Result<f64, ClientError> {
+    #[instrument(skip(self))]
+    async fn balance(&self, address: &Address) -> Result<u128, ClientError> {
+        let address = address.to_string();
+
+        debug!("requesting wallet balance");
         let response = self
             .client
             .post(&self.url)
@@ -61,24 +71,37 @@ impl WalletClient for RpcWalletClient {
             }))
             .send()
             .await
-            .map_err(|e| ClientError(e.into()))?;
+            .map_err(RpcError::from)?;
 
-        let body: serde_json::Value = response.json().await.map_err(|e| ClientError(e.into()))?;
+        debug!("extracting wallet balance");
+        let body: serde_json::Value = response.json().await.map_err(RpcError::from)?;
         let balance = body["result"]
             .as_str()
             .and_then(|s| s.strip_prefix("0x"))
-            .ok_or(ClientError("missing result field".into()))?;
+            .ok_or(RpcError("missing result field".into()))?;
 
-        let wei = hex::decode(balance)
-            .map_err(|e| ClientError(e.into()))?
-            .iter()
-            .fold(0u128, |acc, &byte| acc * 256 + byte as u128);
-
-        let eth = wei as f64 / 1e18;
-        Ok(eth)
+        let wei = extract_wei(balance)?;
+        Ok(wei)
     }
+}
 
-    async fn listen(&self, address: &Address) -> Result<BoxStream<u128>, ClientError> {
-        todo!()
+impl From<RpcError> for ClientError {
+    fn from(error: RpcError) -> Self {
+        ClientError(error.into())
     }
+}
+
+fn extract_wei(balance: &str) -> Result<u128, RpcError> {
+    let balance = if balance.len().is_multiple_of(2) {
+        balance.to_string()
+    } else {
+        format!("0{balance}")
+    };
+
+    let wei = hex::decode(&balance)
+        .map_err(RpcError::from)?
+        .iter()
+        .fold(0, |acc, &byte| acc * 256 + byte as u128);
+
+    Ok(wei)
 }

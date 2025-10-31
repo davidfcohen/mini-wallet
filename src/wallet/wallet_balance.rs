@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use std::{any::type_name, fmt, sync::Arc};
 
-use crate::infra::{WalletClient, WalletStore};
+use crate::infra::WalletStore;
 
 use super::{Result, WalletError, WalletErrorKind};
 
@@ -13,7 +13,6 @@ pub trait Balance: Send + Sync + 'static {
 #[derive(Clone)]
 pub struct BalanceExecutor {
     pub wallet_store: Arc<dyn WalletStore>,
-    pub wallet_client: Arc<dyn WalletClient>,
 }
 
 impl fmt::Debug for BalanceExecutor {
@@ -32,8 +31,9 @@ impl Balance for BalanceExecutor {
             });
         };
 
-        let address = wallet.address().to_string();
-        let balance = self.wallet_client.balance(&address).await?;
-        Ok(balance)
+        let wei = wallet.balance();
+        let eth = wei as f64 / 1e18;
+
+        Ok(eth)
     }
 }
