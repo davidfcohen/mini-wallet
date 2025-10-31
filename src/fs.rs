@@ -51,11 +51,6 @@ pub struct FsWalletStore {
     wallets: Arc<RwLock<HashMap<String, FsWallet>>>,
 }
 
-#[derive(Debug, Clone, Encode, Decode)]
-struct FsWallet {
-    address: [u8; 20],
-}
-
 impl FsWalletStore {
     pub async fn open(path: impl AsRef<str>) -> Result<Self, FsError> {
         let path = PathBuf::from(path.as_ref());
@@ -140,12 +135,22 @@ impl WalletStore for FsWalletStore {
     }
 }
 
+#[derive(Debug, Clone, Encode, Decode)]
+struct FsWallet {
+    address: [u8; 20],
+    balance: u128,
+}
+
 fn fs_to_wallet(fs_wallet: &FsWallet) -> Wallet {
     let address = Address::new(fs_wallet.address);
-    Wallet::new(address)
+    let mut wallet = Wallet::new(address);
+    *wallet.balance_mut() = fs_wallet.balance;
+    wallet
 }
 
 fn wallet_to_fs(wallet: &Wallet) -> FsWallet {
-    let address = wallet.address().inner().to_owned();
-    FsWallet { address }
+    FsWallet {
+        address: *wallet.address().inner(),
+        balance: wallet.balance(),
+    }
 }
