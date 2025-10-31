@@ -10,15 +10,31 @@ use tiny_keccak::{Hasher, Keccak};
 #[derive(Debug, Clone)]
 pub struct Wallet {
     address: Address,
+    balance: u128,
 }
 
 impl Wallet {
     pub fn new(address: Address) -> Self {
-        Self { address }
+        Self {
+            address,
+            balance: 0,
+        }
     }
 
     pub fn address(&self) -> &Address {
         &self.address
+    }
+
+    pub fn address_mut(&mut self) -> &mut Address {
+        &mut self.address
+    }
+
+    pub fn balance(&self) -> u128 {
+        self.balance
+    }
+
+    pub fn balance_mut(&mut self) -> &mut u128 {
+        &mut self.balance
     }
 }
 
@@ -128,9 +144,9 @@ fn make_addr_checksum(addr: &mut [u8; ADDR_ENCODE_SIZE]) {
     let mut keccak = Keccak::v256();
     keccak.update(addr);
     keccak.finalize(&mut addr_hash);
-    let addr_hash_nibbles = addr_hash.iter().flat_map(|byte| [byte >> 4, byte & 0xf]);
 
     let addr_checksum = addr;
+    let addr_hash_nibbles = addr_hash.iter().flat_map(|byte| [byte >> 4, byte & 0xf]);
     for (addr_checksum_ch, addr_hash_nibble) in addr_checksum
         .iter_mut()
         .zip(addr_hash_nibbles)
