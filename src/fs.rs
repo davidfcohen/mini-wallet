@@ -6,6 +6,7 @@ use bincode::{
     error::{DecodeError, EncodeError},
 };
 use tokio::{fs, sync::RwLock};
+use tracing::{debug, info, instrument};
 
 use crate::{
     core::{Address, Wallet},
@@ -52,26 +53,30 @@ pub struct FsWalletStore {
 }
 
 impl FsWalletStore {
+    #[instrument(fields(path = %path.as_ref()))]
     pub async fn open(path: impl AsRef<str>) -> Result<Self, FsError> {
-        let path = PathBuf::from(path.as_ref());
+        let path_str = path.as_ref();
+        let path = PathBuf::from(path_str);
 
-        if !path.exists() {
-            return Ok(Self {
-                path,
-                wallets: Arc::new(RwLock::new(HashMap::new())),
-            });
-        }
+        let store = if !path.exists() {
+            let wallets = Arc::new(RwLock::new(HashMap::new()));
+            let store = Self { path, wallets };
+            store.write().await?;
+            info!("created wallet store");
+            store
+        } else {
+            let bytes = fs::read(&path).await?;
+            let config = bincode::config::standard();
+            let (wallets, _) = bincode::decode_from_slice(&bytes, config)?;
+            let wallets = Arc::new(RwLock::new(wallets));
+            info!("opened wallet store");
+            Self { path, wallets }
+        };
 
-        let bytes = fs::read(&path).await?;
-        let config = bincode::config::standard();
-        let (wallets, _) = bincode::decode_from_slice(&bytes, config)?;
-
-        Ok(Self {
-            path,
-            wallets: Arc::new(RwLock::new(wallets)),
-        })
+        Ok(store)
     }
 
+    #[instrument(skip(self), fields(path = ?self.path))]
     async fn write(&self) -> Result<(), FsError> {
         let wallet = self.wallets.read().await;
 
@@ -83,6 +88,7 @@ impl FsWalletStore {
         }
 
         fs::write(&self.path, bytes).await?;
+        debug!("wrote wallet store");
         Ok(())
     }
 }
@@ -128,6 +134,7 @@ impl WalletStore for FsWalletStore {
         let mut fs_wallets = self.wallets.write().await;
         fs_wallets.remove(name);
         drop(fs_wallets);
+
         self.write().await?;
         Ok(())
     }
