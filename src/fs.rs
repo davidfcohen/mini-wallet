@@ -120,7 +120,6 @@ impl WalletStore for FsWalletStore {
         let mut fs_wallets = self.wallets.write().await;
         fs_wallets.insert(name.to_owned(), wallet_to_fs(wallet));
         drop(fs_wallets);
-
         self.write().await?;
         Ok(())
     }
@@ -129,7 +128,6 @@ impl WalletStore for FsWalletStore {
         let mut fs_wallets = self.wallets.write().await;
         fs_wallets.remove(name);
         drop(fs_wallets);
-
         self.write().await?;
         Ok(())
     }
