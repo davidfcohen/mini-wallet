@@ -3,7 +3,7 @@
 
 pub mod api;
 pub mod core;
-pub mod eth;
 pub mod fs;
 pub mod infra;
+pub mod rpc;
 pub mod wallet;

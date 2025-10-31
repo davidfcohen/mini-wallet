@@ -1,40 +1,45 @@
 use std::{error, fmt, time::Duration};
 
 use async_trait::async_trait;
+use futures::stream::BoxStream;
 use reqwest::Client;
 use serde_json::json;
+use tracing::error;
 
-use crate::infra::{ClientError, WalletClient};
+use crate::{
+    core::Address,
+    infra::{ClientError, WalletClient},
+};
 
 #[derive(Debug)]
-pub struct EthError(Box<dyn error::Error + Send + Sync + 'static>);
+pub struct RpcError(Box<dyn error::Error + Send + Sync + 'static>);
 
-impl fmt::Display for EthError {
+impl fmt::Display for RpcError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ethereum client error")
+        write!(f, "JSON-RPC client error")
     }
 }
 
-impl error::Error for EthError {
+impl error::Error for RpcError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         Some(&*self.0)
     }
 }
 
-impl From<reqwest::Error> for EthError {
+impl From<reqwest::Error> for RpcError {
     fn from(error: reqwest::Error) -> Self {
         Self(error.into())
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct EthWalletClient {
+pub struct RpcWalletClient {
     client: Client,
     url: String,
 }
 
-impl EthWalletClient {
-    pub fn new(url: impl Into<String>) -> Result<Self, EthError> {
+impl RpcWalletClient {
+    pub fn new(url: impl Into<String>) -> Result<Self, RpcError> {
         Ok(Self {
             client: Client::builder().timeout(Duration::from_secs(30)).build()?,
             url: url.into(),
@@ -43,7 +48,7 @@ impl EthWalletClient {
 }
 
 #[async_trait]
-impl WalletClient for EthWalletClient {
+impl WalletClient for RpcWalletClient {
     async fn balance(&self, address: &str) -> Result<f64, ClientError> {
         let response = self
             .client
@@ -71,5 +76,9 @@ impl WalletClient for EthWalletClient {
 
         let eth = wei as f64 / 1e18;
         Ok(eth)
+    }
+
+    async fn listen(&self, address: &Address) -> Result<BoxStream<u128>, ClientError> {
+        todo!()
     }
 }

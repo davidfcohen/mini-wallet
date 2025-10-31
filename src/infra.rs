@@ -1,8 +1,9 @@
 use std::{collections::HashMap, error, fmt};
 
 use async_trait::async_trait;
+use futures::stream::BoxStream;
 
-use crate::core::Wallet;
+use crate::core::{Address, Wallet};
 
 #[derive(Debug)]
 pub struct StoreError(pub Box<dyn error::Error + Send + Sync + 'static>);
@@ -33,7 +34,7 @@ pub struct ClientError(pub Box<dyn error::Error + Send + Sync + 'static>);
 
 impl fmt::Display for ClientError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "blockchain error")
+        write!(f, "ethereum client error")
     }
 }
 
@@ -46,4 +47,5 @@ impl error::Error for ClientError {
 #[async_trait]
 pub trait WalletClient: Send + Sync + 'static {
     async fn balance(&self, address: &str) -> Result<f64, ClientError>;
+    async fn listen(&self, address: &Address) -> Result<BoxStream<u128>, ClientError>;
 }

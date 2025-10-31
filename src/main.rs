@@ -5,8 +5,8 @@ use std::{error::Error, process, sync::Arc};
 
 use mini_wallet::{
     api::{Controller, Server},
-    eth::EthWalletClient,
     fs::FsWalletStore,
+    rpc::RpcWalletClient,
     wallet,
 };
 
@@ -15,7 +15,7 @@ use tracing::error;
 #[derive(Debug, Clone)]
 struct Dependencies {
     wallet_store: Arc<FsWalletStore>,
-    wallet_client: Arc<EthWalletClient>,
+    wallet_client: Arc<RpcWalletClient>,
 }
 
 #[tokio::main]
@@ -41,7 +41,7 @@ async fn build_dependencies() -> Dependencies {
         process::exit(1);
     });
 
-    let wallet_client = EthWalletClient::new("https://eth.llamarpc.com").unwrap_or_else(|e| {
+    let wallet_client = RpcWalletClient::new("https://eth.llamarpc.com").unwrap_or_else(|e| {
         trace_error(&e);
         process::exit(1);
     });

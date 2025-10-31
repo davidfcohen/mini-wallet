@@ -12,7 +12,7 @@ core.rs   wallet and address rules. parses and checks address including checksum
 infra.rs  defines wallet persistence and ethereum client interfaces.
 wallet.rs business logic used to track wallet balances.
 fs.rs     quick and dirty file system database.
-api.rs    quick and dirty gRPC API.
-eth.rs    quick and dirty Ethereum JSON-RPC client.
-main.rs   driver program. dependency injection.
+api.rs    gRPC API used to interface with the application.
+rpc.rs    lightweight Ethereum JSON-RPC client using websockets.
+main.rs   driver program. policy and dependency injection.
 ```
