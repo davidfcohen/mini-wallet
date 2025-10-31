@@ -192,7 +192,6 @@ struct WalletServer {
 
 #[async_trait]
 impl WalletService for WalletServer {
-    #[instrument(skip(self))]
     async fn list(&self, _request: Request<()>) -> Result<Response<ListResponse>> {
         debug!("received list request");
 
