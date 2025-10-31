@@ -3,21 +3,26 @@ use std::{
     error, fmt,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
+    time::Duration,
 };
 
 use async_trait::async_trait;
-use tokio::signal;
+use tokio::{
+    signal,
+    sync::oneshot::{self, Sender},
+    task::JoinHandle,
+    time::interval,
+};
 use tonic::{
     Request, Response, Result, Status,
     transport::{Error as TransportError, Server as InnerServer},
 };
 use tonic_reflection::server::{Builder as ReflectionBuilder, Error as ReflectionError};
-use tracing::info;
+use tracing::{debug, error, info, instrument};
 
 use crate::wallet::{self, WalletError, WalletErrorKind};
 use proto::{
-    BalanceRequest, BalanceResponse, FILE_DESCRIPTOR_SET, ListResponse, TrackRequest,
-    UntrackRequest, Wallet,
+    FILE_DESCRIPTOR_SET, ListResponse, TrackRequest, UntrackRequest, Wallet,
     wallet_service_server::{WalletService, WalletServiceServer},
 };
 
@@ -56,8 +61,8 @@ impl From<ReflectionError> for ApiError {
 #[derive(Clone)]
 pub struct Controller {
     pub wallet_list: Arc<dyn wallet::List>,
-    pub wallet_balance: Arc<dyn wallet::Balance>,
     pub wallet_track: Arc<dyn wallet::Track>,
+    pub wallet_refresh: Arc<dyn wallet::Refresh>,
     pub wallet_untrack: Arc<dyn wallet::Untrack>,
 }
 
@@ -94,6 +99,8 @@ impl Server {
     }
 
     pub async fn run(self) -> Result<(), ApiError> {
+        let (refresh_handle, refresh_shutdown) = spawn_refresh_loop(&self.controller).await;
+
         let addr = self.addr.unwrap_or_else(|| {
             info!("using default address");
             Ipv4Addr::new(0, 0, 0, 0).into()
@@ -121,9 +128,35 @@ impl Server {
             .serve_with_shutdown(socket, capture_shutdown_signal())
             .await?;
 
+        let _ = refresh_shutdown.send(());
+        let _ = refresh_handle.await;
         info!("exited with success");
         Ok(())
     }
+}
+
+async fn spawn_refresh_loop(controller: &Controller) -> (JoinHandle<()>, Sender<()>) {
+    let refresh = controller.wallet_refresh.clone();
+    let (tx, mut rx) = oneshot::channel();
+
+    let handle = tokio::spawn(async move {
+        let mut interval = interval(Duration::from_secs(60));
+
+        loop {
+            tokio::select! {
+                _ = &mut rx => {
+                    break;
+                }
+                _ = interval.tick() => {
+                    let _ = refresh.execute().await.inspect_err(|e| {
+                        error!("{}", compose_error(e));
+                    });
+                }
+            }
+        }
+    });
+
+    (handle, tx)
 }
 
 async fn capture_shutdown_signal() {
@@ -159,25 +192,10 @@ struct WalletServer {
 
 #[async_trait]
 impl WalletService for WalletServer {
-    async fn balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceResponse>> {
-        let name = request
-            .into_inner()
-            .name
-            .ok_or(Status::invalid_argument("missing required name"))?;
-
-        let balance = self
-            .controller
-            .wallet_balance
-            .execute(&name)
-            .await
-            .map_err(|e| error_to_status(&e))?;
-
-        Ok(Response::new(BalanceResponse {
-            balance: Some(balance),
-        }))
-    }
-
+    #[instrument(skip(self))]
     async fn list(&self, _request: Request<()>) -> Result<Response<ListResponse>> {
+        debug!("received list request");
+
         let wallets = self
             .controller
             .wallet_list
@@ -190,19 +208,21 @@ impl WalletService for WalletServer {
             .map(|w| Wallet {
                 name: Some(w.name),
                 address: Some(w.address),
+                balance: Some(w.balance),
             })
             .collect();
 
+        debug!("completed list request");
         Ok(Response::new(ListResponse { wallet: wallets }))
     }
 
     async fn track(&self, request: Request<TrackRequest>) -> Result<Response<()>> {
-        let request = request.into_inner();
+        debug!("received track request");
 
+        let request = request.into_inner();
         let name = request
             .name
             .ok_or(Status::invalid_argument("missing required name"))?;
-
         let address = request
             .address
             .ok_or(Status::invalid_argument("missing required address"))?;
@@ -213,10 +233,13 @@ impl WalletService for WalletServer {
             .await
             .map_err(|e| error_to_status(&e))?;
 
+        debug!("completed track request");
         Ok(Response::new(()))
     }
 
     async fn untrack(&self, request: Request<UntrackRequest>) -> Result<Response<()>> {
+        debug!("received untrack request");
+
         let name = request
             .into_inner()
             .name
@@ -228,6 +251,7 @@ impl WalletService for WalletServer {
             .await
             .map_err(|e| error_to_status(&e))?;
 
+        debug!("completed untrack request");
         Ok(Response::new(()))
     }
 }
@@ -241,7 +265,7 @@ fn error_to_status(error: &WalletError) -> Status {
         WalletErrorKind::NameEmpty => Status::invalid_argument(message),
         WalletErrorKind::NameTooLong => Status::invalid_argument(message),
         WalletErrorKind::WalletStore => Status::internal(message),
-        WalletErrorKind::WalletChain => Status::internal(message),
+        WalletErrorKind::WalletClient => Status::internal(message),
         WalletErrorKind::WalletAddrParse => Status::invalid_argument(message),
     }
 }

@@ -1,5 +1,5 @@
-mod wallet_balance;
 mod wallet_list;
+mod wallet_refresh;
 mod wallet_track;
 mod wallet_untrack;
 
@@ -14,8 +14,8 @@ const NAME_MAX: usize = 30;
 
 pub type Result<T> = result::Result<T, WalletError>;
 
-pub use wallet_balance::{Balance, BalanceExecutor};
 pub use wallet_list::{List, ListExecutor};
+pub use wallet_refresh::{Refresh, RefreshExecutor};
 pub use wallet_track::{Track, TrackExecutor};
 pub use wallet_untrack::{Untrack, UntrackExecutor};
 
@@ -49,8 +49,8 @@ impl fmt::Display for WalletError {
             WalletErrorKind::WalletStore => {
                 write!(f, "wallet store error")
             }
-            WalletErrorKind::WalletChain => {
-                write!(f, "wallet blockchain error")
+            WalletErrorKind::WalletClient => {
+                write!(f, "wallet client error")
             }
             WalletErrorKind::WalletAddrParse => {
                 write!(f, "couldn't parse wallet address")
@@ -72,7 +72,7 @@ pub enum WalletErrorKind {
     NameEmpty,
     NameTooLong,
     WalletStore,
-    WalletChain,
+    WalletClient,
     WalletAddrParse,
 }
 
@@ -88,7 +88,7 @@ impl From<StoreError> for WalletError {
 impl From<ClientError> for WalletError {
     fn from(error: ClientError) -> Self {
         Self {
-            kind: WalletErrorKind::WalletChain,
+            kind: WalletErrorKind::WalletClient,
             source: Some(error.0),
         }
     }
@@ -107,4 +107,5 @@ impl From<AddrParseError> for WalletError {
 pub struct Wallet {
     pub name: String,
     pub address: String,
+    pub balance: f64,
 }

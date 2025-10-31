@@ -2,14 +2,14 @@ use std::{collections::HashMap, error, fmt};
 
 use async_trait::async_trait;
 
-use crate::core::Wallet;
+use crate::core::{Address, Wallet};
 
 #[derive(Debug)]
 pub struct StoreError(pub Box<dyn error::Error + Send + Sync + 'static>);
 
 impl fmt::Display for StoreError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "store error")
+        write!(f, "internal store error")
     }
 }
 
@@ -33,7 +33,7 @@ pub struct ClientError(pub Box<dyn error::Error + Send + Sync + 'static>);
 
 impl fmt::Display for ClientError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "blockchain error")
+        write!(f, "internal client error")
     }
 }
 
@@ -45,5 +45,5 @@ impl error::Error for ClientError {
 
 #[async_trait]
 pub trait WalletClient: Send + Sync + 'static {
-    async fn balance(&self, address: &str) -> Result<f64, ClientError>;
+    async fn balance(&self, address: &Address) -> Result<u128, ClientError>;
 }

@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use super::{Result, WalletError, WalletErrorKind};
 use crate::{
     core::{Address, Wallet},
-    infra::WalletStore,
+    infra::{WalletClient, WalletStore},
 };
 
 #[async_trait]
@@ -16,6 +16,7 @@ pub trait Track: Send + Sync + 'static {
 #[derive(Clone)]
 pub struct TrackExecutor {
     pub wallet_store: Arc<dyn WalletStore>,
+    pub wallet_client: Arc<dyn WalletClient>,
 }
 
 impl fmt::Debug for TrackExecutor {
@@ -37,7 +38,10 @@ impl Track for TrackExecutor {
         }
 
         let address = Address::from_str(address)?;
-        let wallet = Wallet::new(address);
+        let mut wallet = Wallet::new(address);
+
+        let balance = self.wallet_client.balance(&address).await?;
+        *wallet.balance_mut() = balance;
 
         self.wallet_store.save(name, &wallet).await?;
         Ok(())

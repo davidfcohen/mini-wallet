@@ -32,6 +32,7 @@ impl List for ListExecutor {
             .map(|(name, wallet)| Wallet {
                 name,
                 address: wallet.address().to_string(),
+                balance: wei_to_eth(wallet.balance()),
             })
             .collect();
 
@@ -42,4 +43,8 @@ impl List for ListExecutor {
         });
         Ok(wallets)
     }
+}
+
+fn wei_to_eth(wei: u128) -> f64 {
+    wei as f64 / 1e18
 }

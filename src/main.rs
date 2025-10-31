@@ -4,18 +4,19 @@
 use std::{error::Error, process, sync::Arc};
 
 use mini_wallet::{
-    api::{Controller, Server},
-    eth::EthWalletClient,
     fs::FsWalletStore,
+    rpc::RpcWalletClient,
+    server::{Controller, Server},
     wallet,
 };
 
 use tracing::error;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Debug, Clone)]
 struct Dependencies {
     wallet_store: Arc<FsWalletStore>,
-    wallet_client: Arc<EthWalletClient>,
+    wallet_client: Arc<RpcWalletClient>,
 }
 
 #[tokio::main]
@@ -32,7 +33,9 @@ async fn main() {
 }
 
 fn subscribe_tracing() {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
 }
 
 async fn build_dependencies() -> Dependencies {
@@ -41,7 +44,7 @@ async fn build_dependencies() -> Dependencies {
         process::exit(1);
     });
 
-    let wallet_client = EthWalletClient::new("https://eth.llamarpc.com").unwrap_or_else(|e| {
+    let wallet_client = RpcWalletClient::new("https://eth.llamarpc.com").unwrap_or_else(|e| {
         trace_error(&e);
         process::exit(1);
     });
@@ -62,12 +65,13 @@ fn build_controller(dependencies: &Dependencies) -> Controller {
         wallet_list: Arc::new(wallet::ListExecutor {
             wallet_store: wallet_store.clone(),
         }),
-        wallet_balance: Arc::new(wallet::BalanceExecutor {
+        wallet_track: Arc::new(wallet::TrackExecutor {
             wallet_store: wallet_store.clone(),
             wallet_client: wallet_client.clone(),
         }),
-        wallet_track: Arc::new(wallet::TrackExecutor {
+        wallet_refresh: Arc::new(wallet::RefreshExecutor {
             wallet_store: wallet_store.clone(),
+            wallet_client: wallet_client.clone(),
         }),
         wallet_untrack: Arc::new(wallet::UntrackExecutor {
             wallet_store: wallet_store.clone(),
