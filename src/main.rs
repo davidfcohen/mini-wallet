@@ -11,6 +11,7 @@ use mini_wallet::{
 };
 
 use tracing::error;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Debug, Clone)]
 struct Dependencies {
@@ -32,7 +33,9 @@ async fn main() {
 }
 
 fn subscribe_tracing() {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
 }
 
 async fn build_dependencies() -> Dependencies {

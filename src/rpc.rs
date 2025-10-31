@@ -55,7 +55,7 @@ impl RpcWalletClient {
 
 #[async_trait]
 impl WalletClient for RpcWalletClient {
-    #[instrument(skip(self))]
+    #[instrument(skip(self), fields(address = %address.to_string()))]
     async fn balance(&self, address: &Address) -> Result<u128, ClientError> {
         let address = address.to_string();
 
