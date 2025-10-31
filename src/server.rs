@@ -18,7 +18,7 @@ use tonic::{
     transport::{Error as TransportError, Server as InnerServer},
 };
 use tonic_reflection::server::{Builder as ReflectionBuilder, Error as ReflectionError};
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info};
 
 use crate::wallet::{self, WalletError, WalletErrorKind};
 use proto::{
