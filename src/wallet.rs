@@ -1,4 +1,3 @@
-mod wallet_balance;
 mod wallet_list;
 mod wallet_track;
 mod wallet_untrack;
@@ -14,7 +13,6 @@ const NAME_MAX: usize = 30;
 
 pub type Result<T> = result::Result<T, WalletError>;
 
-pub use wallet_balance::{Balance, BalanceExecutor};
 pub use wallet_list::{List, ListExecutor};
 pub use wallet_track::{Track, TrackExecutor};
 pub use wallet_untrack::{Untrack, UntrackExecutor};
@@ -107,4 +105,5 @@ impl From<AddrParseError> for WalletError {
 pub struct Wallet {
     pub name: String,
     pub address: String,
+    pub balance: f64,
 }

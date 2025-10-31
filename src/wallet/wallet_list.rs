@@ -32,6 +32,7 @@ impl List for ListExecutor {
             .map(|(name, wallet)| Wallet {
                 name,
                 address: wallet.address().to_string(),
+                balance: wallet.balance() as f64 / 1e18,
             })
             .collect();
 

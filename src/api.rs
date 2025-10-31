@@ -16,8 +16,7 @@ use tracing::info;
 
 use crate::wallet::{self, WalletError, WalletErrorKind};
 use proto::{
-    BalanceRequest, BalanceResponse, FILE_DESCRIPTOR_SET, ListResponse, TrackRequest,
-    UntrackRequest, Wallet,
+    FILE_DESCRIPTOR_SET, ListResponse, TrackRequest, UntrackRequest, Wallet,
     wallet_service_server::{WalletService, WalletServiceServer},
 };
 
@@ -56,7 +55,6 @@ impl From<ReflectionError> for ApiError {
 #[derive(Clone)]
 pub struct Controller {
     pub wallet_list: Arc<dyn wallet::List>,
-    pub wallet_balance: Arc<dyn wallet::Balance>,
     pub wallet_track: Arc<dyn wallet::Track>,
     pub wallet_untrack: Arc<dyn wallet::Untrack>,
 }
@@ -159,24 +157,6 @@ struct WalletServer {
 
 #[async_trait]
 impl WalletService for WalletServer {
-    async fn balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceResponse>> {
-        let name = request
-            .into_inner()
-            .name
-            .ok_or(Status::invalid_argument("missing required name"))?;
-
-        let balance = self
-            .controller
-            .wallet_balance
-            .execute(&name)
-            .await
-            .map_err(|e| error_to_status(&e))?;
-
-        Ok(Response::new(BalanceResponse {
-            balance: Some(balance),
-        }))
-    }
-
     async fn list(&self, _request: Request<()>) -> Result<Response<ListResponse>> {
         let wallets = self
             .controller
@@ -190,6 +170,7 @@ impl WalletService for WalletServer {
             .map(|w| Wallet {
                 name: Some(w.name),
                 address: Some(w.address),
+                balance: Some(w.balance),
             })
             .collect();
 

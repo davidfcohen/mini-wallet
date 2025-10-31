@@ -65,9 +65,6 @@ fn build_controller(dependencies: &Dependencies) -> Controller {
         wallet_list: Arc::new(wallet::ListExecutor {
             wallet_store: wallet_store.clone(),
         }),
-        wallet_balance: Arc::new(wallet::BalanceExecutor {
-            wallet_store: wallet_store.clone(),
-        }),
         wallet_track: Arc::new(wallet::TrackExecutor {
             wallet_store: wallet_store.clone(),
             wallet_client: wallet_client.clone(),

@@ -5,7 +5,7 @@ package wallet.v1;
 import "google/protobuf/empty.proto";
 
 service WalletService {
-    rpc Balance (BalanceRequest) returns (BalanceResponse);
+    // rpc Get (GetRequest) returns (GetResponse);
     rpc List (google.protobuf.Empty) returns (ListResponse);
     rpc Track (TrackRequest) returns (google.protobuf.Empty);
     rpc Untrack (UntrackRequest) returns (google.protobuf.Empty);
@@ -16,16 +16,18 @@ message Wallet {
     optional string name = 1;
     // required
     optional string address = 2;
+    // required
+    optional double balance = 3;
 }
 
-message BalanceRequest {
+message GetRequest {
     // required
     optional string name = 1;
 }
 
-message BalanceResponse {
+message GetResponse {
     // required
-    optional double balance = 1;
+    optional Wallet wallet = 1;
 }
 
 message ListResponse {
