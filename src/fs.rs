@@ -76,7 +76,7 @@ impl FsWalletStore {
         Ok(store)
     }
 
-    #[instrument(skip(self), fields(path = ?self.path))]
+    #[instrument(skip(self), fields(path = %self.path.to_string_lossy()))]
     async fn write(&self) -> Result<(), FsError> {
         let wallet = self.wallets.read().await;
 
@@ -85,10 +85,12 @@ impl FsWalletStore {
 
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent).await?;
+            info!("created directory")
         }
 
+        let len = bytes.len();
         fs::write(&self.path, bytes).await?;
-        debug!("wrote wallet store");
+        debug!("wrote {} bytes to wallet store", len);
         Ok(())
     }
 }
@@ -134,7 +136,6 @@ impl WalletStore for FsWalletStore {
         let mut fs_wallets = self.wallets.write().await;
         fs_wallets.remove(name);
         drop(fs_wallets);
-
         self.write().await?;
         Ok(())
     }
