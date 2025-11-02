@@ -59,7 +59,7 @@ impl WalletClient for RpcWalletClient {
     async fn balance(&self, address: &Address) -> Result<u128, ClientError> {
         let address = address.to_string();
 
-        debug!("requesting wallet balance");
+        debug!("calling wallet balance rpc");
         let response = self
             .client
             .post(&self.url)
@@ -73,7 +73,6 @@ impl WalletClient for RpcWalletClient {
             .await
             .map_err(RpcError::from)?;
 
-        debug!("extracting wallet balance");
         let body: serde_json::Value = response.json().await.map_err(RpcError::from)?;
         let balance = body["result"]
             .as_str()
@@ -81,6 +80,8 @@ impl WalletClient for RpcWalletClient {
             .ok_or(RpcError("missing result field".into()))?;
 
         let wei = extract_wei(balance)?;
+        debug!(wei = %wei, hex = %balance, "got wallet balance");
+
         Ok(wei)
     }
 }

@@ -200,7 +200,7 @@ impl WalletService for WalletServer {
             .wallet_list
             .execute()
             .await
-            .map_err(|e| error_to_status(&e))?;
+            .map_err(|e| handle_error_status(&e))?;
 
         let wallets = wallets
             .into_iter()
@@ -230,7 +230,7 @@ impl WalletService for WalletServer {
             .wallet_track
             .execute(&name, &address)
             .await
-            .map_err(|e| error_to_status(&e))?;
+            .map_err(|e| handle_error_status(&e))?;
 
         debug!("completed track request");
         Ok(Response::new(()))
@@ -248,14 +248,14 @@ impl WalletService for WalletServer {
             .wallet_untrack
             .execute(&name)
             .await
-            .map_err(|e| error_to_status(&e))?;
+            .map_err(|e| handle_error_status(&e))?;
 
         debug!("completed untrack request");
         Ok(Response::new(()))
     }
 }
 
-fn error_to_status(error: &WalletError) -> Status {
+fn handle_error_status(error: &WalletError) -> Status {
     let message = compose_error(error);
 
     match error.kind() {
@@ -263,9 +263,11 @@ fn error_to_status(error: &WalletError) -> Status {
         WalletErrorKind::NameConflict => Status::already_exists(message),
         WalletErrorKind::NameEmpty => Status::invalid_argument(message),
         WalletErrorKind::NameTooLong => Status::invalid_argument(message),
-        WalletErrorKind::WalletStore => Status::internal(message),
-        WalletErrorKind::WalletClient => Status::internal(message),
         WalletErrorKind::WalletAddrParse => Status::invalid_argument(message),
+        WalletErrorKind::WalletStore | WalletErrorKind::WalletClient => {
+            error!("{message}");
+            Status::internal(message)
+        }
     }
 }
 

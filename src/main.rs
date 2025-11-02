@@ -33,9 +33,8 @@ async fn main() {
 }
 
 fn subscribe_tracing() {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
+    let filter = EnvFilter::from_default_env().add_directive("info".parse().unwrap());
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
 async fn build_dependencies() -> Dependencies {
