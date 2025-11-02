@@ -2,7 +2,7 @@ use std::{any::type_name, fmt, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
 
-use super::{Result, WalletError, WalletErrorKind};
+use super::{NAME_MAX, Result, WalletError, WalletErrorKind};
 use crate::{
     core::{Address, Wallet},
     infra::{WalletClient, WalletStore},
@@ -55,7 +55,7 @@ fn validate_name(name: &str) -> Result<()> {
             kind: WalletErrorKind::NameEmpty,
             source: None,
         })
-    } else if name.chars().count() > 30 {
+    } else if name.chars().count() > NAME_MAX {
         Err(WalletError {
             kind: WalletErrorKind::NameTooLong,
             source: None,
