@@ -33,7 +33,7 @@ async fn main() {
 }
 
 fn subscribe_tracing() {
-    let filter = EnvFilter::from_default_env().add_directive("info".parse().unwrap());
+    let filter = EnvFilter::from_default_env();
     tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 

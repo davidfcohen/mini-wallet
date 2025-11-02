@@ -2,6 +2,10 @@
 name = "mini-wallet"
 version = "0.1.0"
 edition = "2024"
+publish = false
+
+[package.metadata.cargo-machete]
+ignored = ["prost", "tonic-prost"]
 
 [dependencies]
 async-trait = "0.1.89"
@@ -21,3 +25,6 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 
 [build-dependencies]
 tonic-prost-build = "0.14.2"
+
+[dev-dependencies]
+mockall = "0.13.1"

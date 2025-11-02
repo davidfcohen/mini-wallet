@@ -19,6 +19,7 @@ impl error::Error for StoreError {
     }
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait WalletStore: Send + Sync + 'static {
     async fn find(&self, name: &str) -> Result<Option<Wallet>, StoreError>;
@@ -43,6 +44,7 @@ impl error::Error for ClientError {
     }
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait WalletClient: Send + Sync + 'static {
     async fn balance(&self, address: &Address) -> Result<u128, ClientError>;

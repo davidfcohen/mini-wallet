@@ -10,6 +10,7 @@ use crate::{
 
 use super::Result;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait Refresh: Send + Sync + 'static {
     async fn execute(&self) -> Result<()>;

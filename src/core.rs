@@ -165,18 +165,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn addr_display() {
+    fn addr_display_checksum() {
         let encoded = "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B";
         let decoded = Address::from_str(encoded).unwrap();
         assert_eq!(decoded.to_string(), encoded);
 
-        let encoded = "0xF6369e1A96c7af1E2326826F5Dd84bFEf78d7D80";
+        let encoded = "0xB644Babc370f46f202DB5eaf2071A9Ee66fA1D5E";
+        let decoded = Address::from_str(encoded).unwrap();
+        assert_eq!(decoded.to_string(), encoded);
+
+        let encoded = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
         let decoded = Address::from_str(encoded).unwrap();
         assert_eq!(decoded.to_string(), encoded);
     }
 
     #[test]
-    fn addr_parse() {
+    fn addr_parse_success() {
         assert!(Address::from_str("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B").is_ok());
         assert!(Address::from_str("0xF6369e1A96c7af1E2326826F5Dd84bFEf78d7D80").is_ok());
     }

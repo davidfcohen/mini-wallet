@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use super::{Result, WalletError, WalletErrorKind};
 use crate::infra::WalletStore;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait Untrack: Send + Sync + 'static {
     async fn execute(&self, name: &str) -> Result<()>;
@@ -24,14 +25,14 @@ impl fmt::Debug for UntrackExecutor {
 #[async_trait]
 impl Untrack for UntrackExecutor {
     async fn execute(&self, name: &str) -> Result<()> {
-        if !self.wallet_store.exists(name).await? {
-            return Err(WalletError {
+        if self.wallet_store.exists(name).await? {
+            self.wallet_store.delete(name).await?;
+            Ok(())
+        } else {
+            Err(WalletError {
                 kind: WalletErrorKind::NotFound,
                 source: None,
-            });
+            })
         }
-
-        self.wallet_store.delete(name).await?;
-        Ok(())
     }
 }
