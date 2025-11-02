@@ -85,7 +85,7 @@ impl FsWalletStore {
 
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent).await?;
-            info!("created directory");
+            info!("created parent directory");
         }
 
         let len = bytes.len();
