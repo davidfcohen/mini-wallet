@@ -30,10 +30,11 @@ impl List for ListExecutor {
             .all()
             .await?
             .into_iter()
-            .map(|(name, wallet)| Wallet {
+            .map(|(name, record)| Wallet {
                 name,
-                address: wallet.address().to_string(),
-                balance: wallet.balance() as f64 / 1e18,
+                address: record.wallet.address().to_string(),
+                balance: record.wallet.balance() as f64 / 1e18,
+                last_update: record.last_update,
             })
             .collect();
 
@@ -51,9 +52,11 @@ impl List for ListExecutor {
 mod tests {
     use std::{collections::HashMap, str::FromStr, sync::Arc};
 
+    use chrono::Utc;
+
     use crate::{
         core::{Address, Wallet},
-        infra::MockWalletStore,
+        infra::{MockWalletStore, WalletRecord},
         wallet::{List, ListExecutor},
     };
 
@@ -61,26 +64,44 @@ mod tests {
     async fn wallet_list_success() {
         let mut wallet_store = MockWalletStore::new();
         wallet_store.expect_all().returning(|| {
-            let mut wallets = HashMap::new();
+            let mut records = HashMap::new();
 
             let address = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
             let address = Address::from_str(address).unwrap();
             let mut wallet = Wallet::new(address);
             *wallet.balance_mut() = 3756447340569860785;
-            wallets.insert("Vitalik's Wallet".to_string(), wallet);
+            records.insert(
+                "Vitalik's Wallet".to_string(),
+                WalletRecord {
+                    wallet,
+                    last_update: Utc::now(),
+                },
+            );
 
             let address = "0xB644Babc370f46f202DB5eaf2071A9Ee66fA1D5E";
             let address = Address::from_str(address).unwrap();
             let wallet = Wallet::new(address);
-            wallets.insert("David's Wallet".to_string(), wallet);
+            records.insert(
+                "David's Wallet".to_string(),
+                WalletRecord {
+                    wallet,
+                    last_update: Utc::now(),
+                },
+            );
 
             let address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
             let address = Address::from_str(address).unwrap();
             let mut wallet = Wallet::new(address);
             *wallet.balance_mut() = 2203446400537254477610554;
-            wallets.insert("Wrapped Ether".to_string(), wallet);
+            records.insert(
+                "Wrapped Ether".to_string(),
+                WalletRecord {
+                    wallet,
+                    last_update: Utc::now(),
+                },
+            );
 
-            Ok(wallets)
+            Ok(records)
         });
 
         let list = ListExecutor {

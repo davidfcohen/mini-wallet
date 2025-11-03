@@ -1,6 +1,7 @@
 use std::{collections::HashMap, error, fmt};
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 
 use crate::core::{Address, Wallet};
 
@@ -19,13 +20,19 @@ impl error::Error for StoreError {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct WalletRecord {
+    pub wallet: Wallet,
+    pub last_update: DateTime<Utc>,
+}
+
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait WalletStore: Send + Sync + 'static {
-    async fn find(&self, name: &str) -> Result<Option<Wallet>, StoreError>;
-    async fn all(&self) -> Result<HashMap<String, Wallet>, StoreError>;
+    async fn find(&self, name: &str) -> Result<Option<WalletRecord>, StoreError>;
+    async fn all(&self) -> Result<HashMap<String, WalletRecord>, StoreError>;
     async fn exists(&self, name: &str) -> Result<bool, StoreError>;
-    async fn save(&self, name: &str, wallet: &Wallet) -> Result<(), StoreError>;
+    async fn save(&self, name: &str, wallet: &WalletRecord) -> Result<(), StoreError>;
     async fn delete(&self, name: &str) -> Result<(), StoreError>;
 }
 

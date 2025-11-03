@@ -7,6 +7,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use prost_types::Timestamp;
 use tokio::{
     signal,
     sync::oneshot::{self, Sender},
@@ -208,6 +209,10 @@ impl WalletService for WalletServer {
                 name: Some(w.name),
                 address: Some(w.address),
                 balance: Some(w.balance),
+                last_update: Some(Timestamp {
+                    seconds: w.last_update.timestamp(),
+                    nanos: 0,
+                }),
             })
             .collect();
 
