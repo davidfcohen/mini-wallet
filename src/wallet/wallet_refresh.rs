@@ -1,12 +1,10 @@
 use std::{any::type_name, fmt, sync::Arc};
 
 use async_trait::async_trait;
+use chrono::Utc;
 use futures::future::try_join_all;
 
-use crate::{
-    core::Wallet,
-    infra::{WalletClient, WalletStore},
-};
+use crate::infra::{WalletClient, WalletRecord, WalletStore};
 
 use super::Result;
 
@@ -35,7 +33,7 @@ impl Refresh for RefreshExecutor {
 
         let futures: Vec<_> = wallets
             .iter()
-            .map(|(name, wallet)| self.refresh_wallet(name, wallet))
+            .map(|(name, record)| self.refresh_wallet(name, record))
             .collect();
 
         try_join_all(futures).await?;
@@ -44,13 +42,17 @@ impl Refresh for RefreshExecutor {
 }
 
 impl RefreshExecutor {
-    async fn refresh_wallet(&self, name: &str, wallet: &Wallet) -> Result<()> {
-        let balance = self.wallet_client.balance(wallet.address()).await?;
+    async fn refresh_wallet(&self, name: &str, record: &WalletRecord) -> Result<()> {
+        let balance = self.wallet_client.balance(record.wallet.address()).await?;
 
-        let mut wallet = wallet.clone();
+        let mut wallet = record.wallet.clone();
         *wallet.balance_mut() = balance;
+        let record = WalletRecord {
+            wallet,
+            last_update: Utc::now(),
+        };
 
-        self.wallet_store.save(name, &wallet).await?;
+        self.wallet_store.save(name, &record).await?;
         Ok(())
     }
 }

@@ -5,12 +5,13 @@ use bincode::{
     Decode, Encode,
     error::{DecodeError, EncodeError},
 };
+use chrono::DateTime;
 use tokio::{fs, sync::RwLock};
 use tracing::{debug, info, instrument};
 
 use crate::{
     core::{Address, Wallet},
-    infra::{StoreError, WalletStore},
+    infra::{StoreError, WalletRecord, WalletStore},
 };
 
 #[derive(Debug)]
@@ -102,17 +103,17 @@ impl From<FsError> for StoreError {
 
 #[async_trait]
 impl WalletStore for FsWalletStore {
-    async fn find(&self, name: &str) -> Result<Option<Wallet>, StoreError> {
+    async fn find(&self, name: &str) -> Result<Option<WalletRecord>, StoreError> {
         let fs_wallets = self.wallets.read().await;
-        let maybe_wallet = fs_wallets.get(name).map(fs_to_wallet);
-        Ok(maybe_wallet)
+        let maybe_record = fs_wallets.get(name).map(fs_to_record);
+        Ok(maybe_record)
     }
 
-    async fn all(&self) -> Result<HashMap<String, Wallet>, StoreError> {
+    async fn all(&self) -> Result<HashMap<String, WalletRecord>, StoreError> {
         let fs_wallets = self.wallets.read().await;
         let wallets = fs_wallets
             .iter()
-            .map(|(name, wallet)| (name.to_owned(), fs_to_wallet(wallet)))
+            .map(|(name, record)| (name.to_owned(), fs_to_record(record)))
             .collect();
         Ok(wallets)
     }
@@ -123,9 +124,9 @@ impl WalletStore for FsWalletStore {
         Ok(found)
     }
 
-    async fn save(&self, name: &str, wallet: &Wallet) -> Result<(), StoreError> {
+    async fn save(&self, name: &str, record: &WalletRecord) -> Result<(), StoreError> {
         let mut fs_wallets = self.wallets.write().await;
-        fs_wallets.insert(name.to_owned(), wallet_to_fs(wallet));
+        fs_wallets.insert(name.to_owned(), record_to_fs(record));
         drop(fs_wallets);
         self.write().await?;
         Ok(())
@@ -144,18 +145,23 @@ impl WalletStore for FsWalletStore {
 struct FsWallet {
     address: [u8; 20],
     balance: u128,
+    last_update: i64,
 }
 
-fn fs_to_wallet(fs_wallet: &FsWallet) -> Wallet {
-    let address = Address::new(fs_wallet.address);
+fn fs_to_record(fs: &FsWallet) -> WalletRecord {
+    let address = Address::new(fs.address);
     let mut wallet = Wallet::new(address);
-    *wallet.balance_mut() = fs_wallet.balance;
-    wallet
+    *wallet.balance_mut() = fs.balance;
+    WalletRecord {
+        wallet,
+        last_update: DateTime::from_timestamp_nanos(fs.last_update),
+    }
 }
 
-fn wallet_to_fs(wallet: &Wallet) -> FsWallet {
+fn record_to_fs(record: &WalletRecord) -> FsWallet {
     FsWallet {
-        address: *wallet.address().inner(),
-        balance: wallet.balance(),
+        address: *record.wallet.address().inner(),
+        balance: record.wallet.balance(),
+        last_update: record.last_update.timestamp(),
     }
 }

@@ -1,11 +1,12 @@
 use std::{any::type_name, fmt, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
+use chrono::Utc;
 
 use super::{NAME_MAX, Result, WalletError, WalletErrorKind};
 use crate::{
     core::{Address, Wallet},
-    infra::{WalletClient, WalletStore},
+    infra::{WalletClient, WalletRecord, WalletStore},
 };
 
 #[cfg_attr(test, mockall::automock)]
@@ -39,18 +40,22 @@ impl Track for TrackExecutor {
         }
 
         let address = Address::from_str(address)?;
-        let mut wallet = Wallet::new(address);
-
         let balance = self.wallet_client.balance(&address).await?;
-        *wallet.balance_mut() = balance;
 
-        self.wallet_store.save(name, &wallet).await?;
+        let mut wallet = Wallet::new(address);
+        *wallet.balance_mut() = balance;
+        let record = WalletRecord {
+            wallet,
+            last_update: Utc::now(),
+        };
+
+        self.wallet_store.save(name, &record).await?;
         Ok(())
     }
 }
 
 fn validate_name(name: &str) -> Result<()> {
-    if name.is_empty() {
+    if name.trim().is_empty() {
         Err(WalletError {
             kind: WalletErrorKind::NameEmpty,
             source: None,
@@ -101,6 +106,9 @@ mod tests {
         };
 
         let error = track.execute("", ADDR).await.unwrap_err();
+        assert_eq!(error.kind(), WalletErrorKind::NameEmpty);
+
+        let error = track.execute("   ", ADDR).await.unwrap_err();
         assert_eq!(error.kind(), WalletErrorKind::NameEmpty);
     }
 

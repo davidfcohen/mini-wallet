@@ -5,6 +5,8 @@ mod wallet_untrack;
 
 use std::{error, fmt, result};
 
+use chrono::{DateTime, Utc};
+
 use crate::{
     core::AddrParseError,
     infra::{ClientError, StoreError},
@@ -108,4 +110,5 @@ pub struct Wallet {
     pub name: String,
     pub address: String,
     pub balance: f64,
+    pub last_update: DateTime<Utc>,
 }
