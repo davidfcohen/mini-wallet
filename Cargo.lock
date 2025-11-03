@@ -838,6 +838,7 @@ dependencies = [
  "hex",
  "mockall",
  "prost",
+ "prost-types",
  "reqwest",
  "serde_json",
  "tiny-keccak",

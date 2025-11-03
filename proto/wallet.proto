@@ -3,6 +3,7 @@ syntax = "proto3";
 package wallet.v1;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 service WalletService {
     rpc List (google.protobuf.Empty) returns (ListResponse);
@@ -17,6 +18,8 @@ message Wallet {
     optional string address = 2;
     // required
     optional double balance = 3;
+    // required
+    optional google.protobuf.Timestamp last_update = 4;
 }
 
 message ListResponse {

@@ -154,7 +154,7 @@ fn fs_to_record(fs: &FsWallet) -> WalletRecord {
     *wallet.balance_mut() = fs.balance;
     WalletRecord {
         wallet,
-        last_update: DateTime::from_timestamp_nanos(fs.last_update),
+        last_update: DateTime::from_timestamp(fs.last_update, 0).unwrap_or_default(),
     }
 }
 
