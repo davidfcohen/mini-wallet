@@ -17,7 +17,7 @@ message Wallet {
     // required
     optional string address = 2;
     // required
-    optional double balance = 3;
+    optional string balance = 3;
     // required
     optional google.protobuf.Timestamp last_update = 4;
 }

@@ -7,7 +7,7 @@ use serde_json::json;
 use tracing::{debug, instrument};
 
 use crate::{
-    core::Address,
+    core::{Address, Balance},
     infra::{ClientError, WalletClient},
 };
 
@@ -56,7 +56,7 @@ impl RpcWalletClient {
 #[async_trait]
 impl WalletClient for RpcWalletClient {
     #[instrument(skip(self), fields(address = %address.to_string()))]
-    async fn balance(&self, address: &Address) -> Result<u128, ClientError> {
+    async fn balance(&self, address: &Address) -> Result<Balance, ClientError> {
         let address = address.to_string();
 
         debug!("calling wallet balance rpc");
@@ -82,7 +82,7 @@ impl WalletClient for RpcWalletClient {
         let wei = extract_wei(balance)?;
         debug!(wei = %wei, hex = %balance, "got wallet balance");
 
-        Ok(wei)
+        Ok(Balance::new(wei))
     }
 }
 

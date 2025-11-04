@@ -10,14 +10,14 @@ use tiny_keccak::{Hasher, Keccak};
 #[derive(Debug, Clone)]
 pub struct Wallet {
     address: Address,
-    balance: u128,
+    balance: Balance,
 }
 
 impl Wallet {
     pub fn new(address: Address) -> Self {
         Self {
             address,
-            balance: 0,
+            balance: Balance::default(),
         }
     }
 
@@ -29,27 +29,54 @@ impl Wallet {
         &mut self.address
     }
 
-    pub fn balance(&self) -> u128 {
+    pub fn balance(&self) -> Balance {
         self.balance
     }
 
-    pub fn balance_mut(&mut self) -> &mut u128 {
+    pub fn balance_mut(&mut self) -> &mut Balance {
         &mut self.balance
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Balance(u128);
+
+impl fmt::Display for Balance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.wei())
+    }
+}
+
+impl Balance {
+    pub fn new(wei: u128) -> Self {
+        Self(wei.into())
+    }
+
+    pub fn wei(&self) -> u128 {
+        self.0
+    }
+
+    pub fn eth(&self) -> String {
+        const ONE_ETH: u128 = 1_000_000_000_000_000_000;
+        let wei = self.wei();
+        let whole = wei / ONE_ETH;
+        let fraction = wei % ONE_ETH;
+        format!("{whole}.{fraction}")
     }
 }
 
 #[derive(Debug)]
 pub struct AddrParseError {
-    inner: InnerError,
+    inner: InnerAddrParseError,
 }
 
 impl fmt::Display for AddrParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.inner {
-            InnerError::MissingPrefix => write!(f, "address missing prefix"),
-            InnerError::WrongLen => write!(f, "address is wrong length"),
-            InnerError::BadChecksum => write!(f, "address doesn't match checksum"),
-            InnerError::Decode(_) => write!(f, "couldn't decode address"),
+            InnerAddrParseError::MissingPrefix => write!(f, "address missing prefix"),
+            InnerAddrParseError::WrongLen => write!(f, "address is wrong length"),
+            InnerAddrParseError::BadChecksum => write!(f, "address doesn't match checksum"),
+            InnerAddrParseError::Decode(_) => write!(f, "couldn't decode address"),
         }
     }
 }
@@ -57,22 +84,22 @@ impl fmt::Display for AddrParseError {
 impl error::Error for AddrParseError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match &self.inner {
-            InnerError::Decode(e) => Some(e),
+            InnerAddrParseError::Decode(e) => Some(e),
             _ => None,
         }
     }
 }
 
 #[derive(Debug)]
-enum InnerError {
+enum InnerAddrParseError {
     MissingPrefix,
     WrongLen,
     BadChecksum,
     Decode(FromHexError),
 }
 
-impl From<InnerError> for AddrParseError {
-    fn from(error: InnerError) -> Self {
+impl From<InnerAddrParseError> for AddrParseError {
+    fn from(error: InnerAddrParseError) -> Self {
         Self { inner: error }
     }
 }
@@ -116,15 +143,16 @@ impl FromStr for Address {
         let addr_encoded: &[u8; ADDR_ENCODE_SIZE] = addr
             .as_bytes()
             .strip_prefix(b"0x")
-            .ok_or(InnerError::MissingPrefix)?
+            .ok_or(InnerAddrParseError::MissingPrefix)?
             .try_into()
-            .map_err(|_| InnerError::WrongLen)?;
+            .map_err(|_| InnerAddrParseError::WrongLen)?;
 
         let mut addr_decoded = [0; ADDR_DECODE_SIZE];
-        hex::decode_to_slice(addr_encoded, &mut addr_decoded).map_err(InnerError::Decode)?;
+        hex::decode_to_slice(addr_encoded, &mut addr_decoded)
+            .map_err(InnerAddrParseError::Decode)?;
 
         if !checksum_eq(addr_encoded) {
-            Err(InnerError::BadChecksum)?;
+            Err(InnerAddrParseError::BadChecksum)?;
         }
 
         Ok(Self(addr_decoded))
@@ -188,42 +216,42 @@ mod tests {
     #[test]
     fn addr_parse_missing_prefix() {
         let error = Address::from_str("").unwrap_err();
-        assert!(matches!(error.inner, InnerError::MissingPrefix));
+        assert!(matches!(error.inner, InnerAddrParseError::MissingPrefix));
 
         let error = Address::from_str("Ab5801a7D398351b8bE11C439e05C5B3259aeC9B").unwrap_err();
-        assert!(matches!(error.inner, InnerError::MissingPrefix));
+        assert!(matches!(error.inner, InnerAddrParseError::MissingPrefix));
 
         let error = Address::from_str("F6369e1A96c7af1E2326826F5Dd84bFEf78d7D80").unwrap_err();
-        assert!(matches!(error.inner, InnerError::MissingPrefix));
+        assert!(matches!(error.inner, InnerAddrParseError::MissingPrefix));
     }
 
     #[test]
     fn addr_parse_wrong_len() {
         let error = Address::from_str("0x").unwrap_err();
-        assert!(matches!(error.inner, InnerError::WrongLen));
+        assert!(matches!(error.inner, InnerAddrParseError::WrongLen));
 
         let error = Address::from_str("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9").unwrap_err();
-        assert!(matches!(error.inner, InnerError::WrongLen));
+        assert!(matches!(error.inner, InnerAddrParseError::WrongLen));
 
         let error = Address::from_str("0xF6369e1A96c7af1E2326826F5Dd84bFEf78d7D801").unwrap_err();
-        assert!(matches!(error.inner, InnerError::WrongLen));
+        assert!(matches!(error.inner, InnerAddrParseError::WrongLen));
     }
 
     #[test]
     fn addr_parse_bad_checksum() {
         let error = Address::from_str("0xaB5801A7d398351B8Be11c439E05c5b3259AEc9b").unwrap_err();
-        assert!(matches!(error.inner, InnerError::BadChecksum));
+        assert!(matches!(error.inner, InnerAddrParseError::BadChecksum));
 
         let error = Address::from_str("0xab5801a7d398351b8be11c439e05c5b3259aec9b").unwrap_err();
-        assert!(matches!(error.inner, InnerError::BadChecksum));
+        assert!(matches!(error.inner, InnerAddrParseError::BadChecksum));
 
         let error = Address::from_str("0xAB5801A7D398351B8BE11C439E05C5B3259AEC9B").unwrap_err();
-        assert!(matches!(error.inner, InnerError::BadChecksum));
+        assert!(matches!(error.inner, InnerAddrParseError::BadChecksum));
     }
 
     #[test]
     fn addr_parse_decode_err() {
         let error = Address::from_str("0xABCDEFGHIJKLMNOPQRSTabcdefghijklmnopqrst").unwrap_err();
-        assert!(matches!(error.inner, InnerError::Decode(_)));
+        assert!(matches!(error.inner, InnerAddrParseError::Decode(_)));
     }
 }

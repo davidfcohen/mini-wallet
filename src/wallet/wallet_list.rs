@@ -33,7 +33,7 @@ impl List for ListExecutor {
             .map(|(name, record)| Wallet {
                 name,
                 address: record.wallet.address().to_string(),
-                balance: record.wallet.balance() as f64 / 1e18,
+                balance: record.wallet.balance().eth(),
                 last_update: record.last_update,
             })
             .collect();
@@ -55,7 +55,7 @@ mod tests {
     use chrono::Utc;
 
     use crate::{
-        core::{Address, Wallet},
+        core::{Address, Balance, Wallet},
         infra::{MockWalletStore, WalletRecord},
         wallet::{List, ListExecutor},
     };
@@ -69,7 +69,7 @@ mod tests {
             let address = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
             let address = Address::from_str(address).unwrap();
             let mut wallet = Wallet::new(address);
-            *wallet.balance_mut() = 3756447340569860785;
+            *wallet.balance_mut() = Balance::new(3_756_447_340_569_860_785);
             records.insert(
                 "Vitalik's Wallet".to_string(),
                 WalletRecord {
@@ -92,7 +92,7 @@ mod tests {
             let address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
             let address = Address::from_str(address).unwrap();
             let mut wallet = Wallet::new(address);
-            *wallet.balance_mut() = 2203446400537254477610554;
+            *wallet.balance_mut() = Balance::new(2_203_446_400_537_254_477_610_554);
             records.insert(
                 "Wrapped Ether".to_string(),
                 WalletRecord {
@@ -113,9 +113,8 @@ mod tests {
         assert_eq!(wallets[1].name, "Vitalik's Wallet");
         assert_eq!(wallets[2].name, "Wrapped Ether");
 
-        const T: f64 = 1e-9;
-        assert!((wallets[0].balance - 0.0).abs() < T);
-        assert!((wallets[1].balance - 3.756447340569860785).abs() < T);
-        assert!((wallets[2].balance - 2203446.400537254477610554).abs() < T);
+        assert_eq!(wallets[0].balance, "0.000000000000000000");
+        assert_eq!(wallets[1].balance, "3.756447340569860785");
+        assert_eq!(wallets[2].balance, "2203446.400537254477610554");
     }
 }

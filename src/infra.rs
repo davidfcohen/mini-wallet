@@ -3,7 +3,7 @@ use std::{collections::HashMap, error, fmt};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
-use crate::core::{Address, Wallet};
+use crate::core::{Address, Balance, Wallet};
 
 #[derive(Debug)]
 pub struct StoreError(pub Box<dyn error::Error + Send + Sync + 'static>);
@@ -54,5 +54,5 @@ impl error::Error for ClientError {
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait WalletClient: Send + Sync + 'static {
-    async fn balance(&self, address: &Address) -> Result<u128, ClientError>;
+    async fn balance(&self, address: &Address) -> Result<Balance, ClientError>;
 }
