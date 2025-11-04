@@ -49,7 +49,7 @@ impl fmt::Display for Balance {
 
 impl Balance {
     pub fn new(wei: u128) -> Self {
-        Self(wei.into())
+        Self(wei)
     }
 
     pub fn wei(&self) -> u128 {
