@@ -41,6 +41,12 @@ impl Wallet {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Balance(u128);
 
+impl fmt::Display for Balance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.wei())
+    }
+}
+
 impl Balance {
     pub fn new(wei: u128) -> Self {
         Self(wei.into())
