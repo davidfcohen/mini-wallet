@@ -75,6 +75,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
+        core::Balance,
         infra::{MockWalletClient, MockWalletStore},
         wallet::{NAME_MAX, Track, TrackExecutor, WalletErrorKind},
     };
@@ -88,7 +89,9 @@ mod tests {
         wallet_store.expect_save().returning(|_, _| Ok(()));
 
         let mut wallet_client = MockWalletClient::new();
-        wallet_client.expect_balance().returning(|_| Ok(0));
+        wallet_client
+            .expect_balance()
+            .returning(|_| Ok(Balance::default()));
 
         let track = TrackExecutor {
             wallet_store: Arc::new(wallet_store),

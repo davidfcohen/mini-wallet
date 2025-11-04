@@ -10,7 +10,7 @@ use tokio::{fs, sync::RwLock};
 use tracing::{debug, info, instrument};
 
 use crate::{
-    core::{Address, Wallet},
+    core::{Address, Balance, Wallet},
     infra::{StoreError, WalletRecord, WalletStore},
 };
 
@@ -151,7 +151,7 @@ struct FsWallet {
 fn fs_to_record(fs: &FsWallet) -> WalletRecord {
     let address = Address::new(fs.address);
     let mut wallet = Wallet::new(address);
-    *wallet.balance_mut() = fs.balance;
+    *wallet.balance_mut() = Balance::new(fs.balance);
     WalletRecord {
         wallet,
         last_update: DateTime::from_timestamp(fs.last_update, 0).unwrap_or_default(),
@@ -161,7 +161,7 @@ fn fs_to_record(fs: &FsWallet) -> WalletRecord {
 fn record_to_fs(record: &WalletRecord) -> FsWallet {
     FsWallet {
         address: *record.wallet.address().inner(),
-        balance: record.wallet.balance(),
+        balance: record.wallet.balance().wei(),
         last_update: record.last_update.timestamp(),
     }
 }

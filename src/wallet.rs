@@ -109,6 +109,6 @@ impl From<AddrParseError> for WalletError {
 pub struct Wallet {
     pub name: String,
     pub address: String,
-    pub balance: f64,
+    pub balance: String,
     pub last_update: DateTime<Utc>,
 }
