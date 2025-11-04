@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_debug_implementations)]
 
-use std::{error::Error, process, sync::Arc};
+use std::{env, error::Error, process, sync::Arc};
 
 use mini_wallet::{
     fs::FsWalletStore,
@@ -11,7 +11,7 @@ use mini_wallet::{
 };
 
 use tracing::error;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 #[derive(Debug, Clone)]
 struct Dependencies {
@@ -33,8 +33,17 @@ async fn main() {
 }
 
 fn subscribe_tracing() {
-    let filter = EnvFilter::from_default_env();
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    if env::var("RUST_LOG").is_ok() {
+        tracing_subscriber::registry()
+            .with(EnvFilter::from_default_env())
+            .with(fmt::layer())
+            .init();
+    } else {
+        tracing_subscriber::registry()
+            .with(LevelFilter::INFO)
+            .with(fmt::layer())
+            .init();
+    }
 }
 
 async fn build_dependencies() -> Dependencies {
